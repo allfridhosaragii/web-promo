@@ -1,0 +1,30 @@
+{
+  "source_id": "informa",
+  "captured_at_wib": "2026-11-23T01:09:30+07:00",
+  "listing_links": [
+    "https://informa.co.id/home-promotion/informa-electronics-black-friday",
+    "https://informa.co.id/home-promotion/eye-soul-holiday",
+    "https://informa.co.id/home-promotion/informa-bedroom-metal-fair",
+    "https://informa.co.id/home-promotion/informa-pakai-poin",
+    "https://informa.co.id/home-promotion/informa-chair-vaganza",
+    "https://informa.co.id/home-promotion/informa-tukar-poin-jadi-voucher"
+  ],
+  "detail_1": {
+    "source_url": "https://informa.co.id/home-promotion/informa-electronics-black-friday",
+    "title": "Black Friday INFORMA Electronics, Diskon hingga 40%*",
+    "promo_type": "persen",
+    "value_percent": 40.0,
+    "min_purchase": null,
+    "voucher_code": null,
+    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+  },
+  "detail_2": {
+    "source_url": "https://informa.co.id/home-promotion/informa-chair-vaganza",
+    "title": "Upgrade Nyamannya Produktif Hemat hingga 50%*",
+    "promo_type": "persen",
+    "value_percent": 50.0,
+    "min_purchase": null,
+    "voucher_code": null,
+    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+  }
+}
