@@ -1,0 +1,20 @@
+/* BuruPromo tokens — ARCHITECTURE.md §9. Radius kecil, garis & kontras, bukan blur. */
+:root {
+  --bp-paper: #f6f3ec;
+  --bp-ink: #151515;
+  --bp-line: #d9d3c7;
+  --bp-sticker: #e4572e;
+  --bp-label: #ffd23f;
+  --bp-valid: #1f7a4c;
+  --bp-muted: #6b665e;
+  --bp-night: #121110;
+  --bp-night-surface: #1c1b19;
+  --bp-night-text: #ede8de;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bp-paper: #121110;
+    --bp-ink: #ede8de;
+    --bp-line: #2e2c29;
+  }
+}

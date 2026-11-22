@@ -1,0 +1,6 @@
+{
+  "name": "@burupromo/config",
+  "version": "0.1.0",
+  "private": true,
+  "files": ["tsconfig.json", "tailwind-preset.js", "biome.json"]
+}

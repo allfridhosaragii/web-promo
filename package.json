@@ -1,0 +1,26 @@
+{
+  "name": "burupromo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BuruPromo \u2014 search engine promo Indonesia. Fase 0 skeleton.",
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "lint:ts": "biome check .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:py": "cd services/ingest && uv run pytest -q",
+    "check:fixtures": "python3 services/ingest/scripts/check_fixtures.py",
+    "seed": "cd packages/db && pnpm seed",
+    "meilisearch:settings": "bash infra/meilisearch/apply-settings.sh",
+    "docker:up": "docker compose -f infra/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infra/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.6.3",
+    "@biomejs/biome": "^1.9.4"
+  }
+}

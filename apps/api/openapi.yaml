@@ -1,0 +1,125 @@
+# BuruPromo OpenAPI /v1 — ringkas. Sumber kebenaran: packages/contracts + ARCHITECTURE.md §16.
+# Semua waktu ISO 8601 UTC, tampil WIB di client. Error: { "error": { "code", "message" } }.
+openapi: 3.1.0
+info:
+  title: BuruPromo API
+  version: 0.1.0
+  description: Search engine khusus promo Indonesia. Fase 0 skeleton.
+servers:
+  - url: http://localhost:3001
+    description: Lokal (Docker Compose)
+paths:
+  /v1/promos:
+    get:
+      summary: Cari promo aktif
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: category, in: query, schema: { type: string }, description: "slug, bisa banyak, dipisah koma" }
+        - { name: region, in: query, schema: { type: string }, example: "35.78" }
+        - { name: cluster, in: query, schema: { type: string }, example: "surabaya-raya" }
+        - { name: brand, in: query, schema: { type: string } }
+        - { name: platform, in: query, schema: { type: string } }
+        - { name: promo_type, in: query, schema: { type: string, enum: [persen, potongan_nominal, cashback, beli_x_gratis_y, gratis_ongkir, harga_spesial, bundling, poin, cicilan_0, lainnya] } }
+        - { name: channel, in: query, schema: { type: string, enum: [online, offline, keduanya] } }
+        - { name: payment, in: query, schema: { type: string }, example: "bca" }
+        - { name: ends_today, in: query, schema: { type: boolean } }
+        - { name: ends_soon, in: query, schema: { type: boolean }, description: "ends_at < 24 jam" }
+        - { name: no_min_purchase, in: query, schema: { type: boolean } }
+        - { name: student_only, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [relevance, newest, ending_soon, biggest_discount, most_trusted, nearest], default: relevance } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, default: 20, maximum: 50 } }
+      responses:
+        "200":
+          description: Daftar PromoSummary + meta paginasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/PromoSummary" } }
+                  meta: { type: object, properties: { page: { type: integer }, per_page: { type: integer }, total: { type: integer }, total_pages: { type: integer } } }
+  /v1/promos/{id}:
+    get:
+      summary: Detail promo
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: PromoDetail, content: { application/json: { schema: { $ref: "#/components/schemas/PromoDetail" } } } }
+        "404": { description: "Tidak ada, ditolak, atau kedaluwarsa", content: { application/json: { schema: { $ref: "#/components/schemas/ApiError" } } } }
+    post:
+      summary: Vote validitas (butuh login, Fase 1)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, properties: { vote: { type: string, enum: [valid, invalid] } }, required: [vote] } } }
+      responses:
+        "200": { description: "{ votes_valid, votes_invalid }" }
+        "501": { description: Belum aktif di Fase 0 }
+  /v1/submissions:
+    post:
+      summary: Kirim promo komunitas (butuh login + Turnstile, Fase 1)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, properties: { source_url: { type: string, format: uri }, title: { type: string }, note: { type: string, maxLength: 500 }, photo_url: { type: string, format: uri } }, required: [source_url] } } }
+      responses:
+        "201": { description: "{ id, status: menunggu_moderasi }" }
+  /v1/regions:
+    get:
+      summary: Hierarki wilayah Kemendagri
+      parameters:
+        - { name: level, in: query, schema: { type: string, enum: [provinsi, kab_kota, kecamatan] } }
+        - { name: parent, in: query, schema: { type: string }, example: "35" }
+      responses: { "200": { description: Daftar region } }
+  /v1/categories:
+    get: { summary: Taksonomi kategori dari DB, responses: { "200": { description: Daftar kategori } } }
+  /v1/brands:
+    get: { summary: Daftar brand, responses: { "200": { description: Daftar brand } } }
+  /v1/sources:
+    get: { summary: Daftar konektor + status + last_success_at (tanpa secret/budget), responses: { "200": { description: Daftar sumber } } }
+components:
+  schemas:
+    PromoSummary:
+      type: object
+      required: [id, title, summary, brand, platform, promo_type, channel, region_scope, starts_at, ends_at, status, confidence, source_url]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        summary: { type: string }
+        brand: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string }, slug: { type: string }, logo_url: { type: string, format: uri, nullable: true } } }
+        platform: { type: string }
+        promo_type: { type: string, enum: [persen, potongan_nominal, cashback, beli_x_gratis_y, gratis_ongkir, harga_spesial, bundling, poin, cicilan_0, lainnya] }
+        value_percent: { type: number, nullable: true }
+        value_amount: { type: integer, nullable: true }
+        max_discount: { type: integer, nullable: true }
+        min_purchase: { type: integer, nullable: true }
+        voucher_code: { type: string, nullable: true }
+        channel: { type: string, enum: [online, offline, keduanya] }
+        category_slugs: { type: array, items: { type: string } }
+        region_scope: { type: string, enum: [nasional, provinsi, kota, outlet_tertentu] }
+        region_codes: { type: array, items: { type: string } }
+        starts_at: { type: string, format: date-time }
+        ends_at: { type: string, format: date-time }
+        status: { type: string, enum: [aktif, segera_berakhir] }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        votes_valid: { type: integer }
+        votes_invalid: { type: integer }
+        saves: { type: integer }
+        source_url: { type: string, format: uri }
+        evidence_image_url: { type: string, format: uri, nullable: true }
+    PromoDetail:
+      allOf:
+        - $ref: "#/components/schemas/PromoSummary"
+        - type: object
+          properties:
+            how_to_claim: { type: string, nullable: true }
+            requirements: { type: array, items: { type: string } }
+            payment_methods: { type: array, items: { type: string } }
+            outlets: { type: array, items: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string }, address: { type: string, nullable: true }, region_code: { type: string }, lat: { type: number, nullable: true }, lon: { type: number, nullable: true } } } }
+            source: { type: object, properties: { id: { type: string, format: uuid }, name: { type: string }, type: { type: string } } }
+            last_checked_at: { type: string, format: date-time, nullable: true }
+    ApiError:
+      type: object
+      properties:
+        error: { type: object, properties: { code: { type: string }, message: { type: string } } }

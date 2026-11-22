@@ -1,0 +1,9 @@
+@import "@burupromo/ui/tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body {
+  background: var(--bp-paper);
+  color: var(--bp-ink);
+  font-family: "Schibsted Grotesk", system-ui, sans-serif;
+}

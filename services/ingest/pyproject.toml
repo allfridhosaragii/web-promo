@@ -1,0 +1,32 @@
+[project]
+name = "burupromo-ingest"
+version = "0.1.0"
+description = "BuruPromo ingestion: konektor, pipeline, worker (Fase 0 skeleton)"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx>=0.28.0",
+  "pydantic>=2.9.0",
+  "selectolax>=0.3.21",
+  "redis>=5.2.0",
+  "arq>=0.26.0",
+  "google-generativeai>=0.8.0",
+  "playwright>=1.48.0",
+  # Sinkron Spreadsheet (ARCH §17, revisi 2) — service account, tanpa billing.
+  "google-api-python-client>=2.150.0",
+  "google-auth>=2.35.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3.0", "ruff>=0.7.0", "pytest-asyncio>=0.24.0"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["connectors/tests", "pipeline/tests", "sync/tests"]
+asyncio_mode = "auto"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

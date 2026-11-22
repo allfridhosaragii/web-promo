@@ -1,0 +1,15 @@
+{
+  "name": "BuruPromo",
+  "short_name": "BuruPromo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F3EC",
+  "theme_color": "#151515",
+  "description": "Search engine khusus promo Indonesia.",
+  "share_target": {
+    "action": "/submit",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}

@@ -1,0 +1,145 @@
+# BuruPromo — Revisi 2: SEMUA GRATIS (Rp0), kecuali domain (owner beli sendiri).
+# Produksi: Oracle Cloud Always Free, VM ARM Ampere A1 (rancang untuk 2 OCPU /
+# 12 GB tenancy biasa; 4 OCPU / 24 GB hanya bila akun PAYG), seluruh Compose di
+# satu VM + Caddy untuk HTTPS otomatis (Let's Encrypt). JANGAN pakai Vercel Hobby.
+# Semua image WAJIB linux/arm64 (platform ditulis eksplisit di tiap service).
+# Lokal: `docker compose -f infra/docker-compose.yml up -d` (DOMAIN kosong =
+# Caddy melayani http://localhost). Produksi: isi DOMAIN di .env.
+# R2 DIHAPUS (revisi 2) — thumbnail di volume lokal `localdata` (200 GB block
+# Oracle) atau Oracle Object Storage free tier (opsional, 20 GB).
+# LLM: Gemini FREE TIER saja, TANPA billing account. Budget USD DIHAPUS,
+# diganti quota guard: LLM_DAILY_REQUESTS (default 20) + LLM_RPM (default 10).
+name: burupromo
+services:
+  postgres:
+    build: ./postgres
+    platform: linux/arm64
+    container_name: burupromo-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-burupromo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-burupromo_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-burupromo}
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../packages/db/migrations:/docker-entrypoint-initdb.d/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-burupromo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  redis:
+    image: valkey/valkey:8-alpine
+    platform: linux/arm64
+    container_name: burupromo-redis
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    platform: linux/arm64
+    container_name: burupromo-meilisearch
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-change_me_dev_only}
+      MEILI_NO_ANALYTICS: "true"
+    ports: ["7700:7700"]
+    volumes: [msdata:/meili_data]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  api:
+    build: { context: .., dockerfile: infra/api.Dockerfile }
+    platform: linux/arm64
+    container_name: burupromo-api
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-burupromo}:${POSTGRES_PASSWORD:-burupromo_dev}@postgres:5432/${POSTGRES_DB:-burupromo}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-change_me_dev_only}
+      STORAGE_PATH: /data/localdata
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      API_PORT: "3001"
+    ports: ["3001:3001"]
+    volumes:
+      - localdata:/data/localdata
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      meilisearch: { condition: service_healthy }
+  web:
+    build: { context: .., dockerfile: infra/web.Dockerfile }
+    platform: linux/arm64
+    container_name: burupromo-web
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      NEXT_PUBLIC_UMAMI_SCRIPT_URL: ${UMAMI_SCRIPT_URL:-}
+    ports: ["3000:3000"]
+    depends_on: [api]
+  ingest:
+    build: { context: .., dockerfile: infra/ingest.Dockerfile }
+    platform: linux/arm64
+    container_name: burupromo-ingest
+    command: ["uv", "run", "python", "-m", "jobs.scheduler"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-burupromo}:${POSTGRES_PASSWORD:-burupromo_dev}@postgres:5432/${POSTGRES_DB:-burupromo}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-change_me_dev_only}
+      # LLM free tier — quota guard (jumlah request, BUKAN rupiah). Tanpa
+      # GEMINI_API_KEY, tidak ada panggilan. Tanpa billing account, Rp0.
+      LLM_DAILY_REQUESTS: ${LLM_DAILY_REQUESTS:-20}
+      LLM_RPM: ${LLM_RPM:-10}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Sinkron Spreadsheet (ARCH §17) — service account, file key DI LUAR repo.
+      GOOGLE_SHEETS_SPREADSHEET_ID: ${GOOGLE_SHEETS_SPREADSHEET_ID:-}
+      GOOGLE_SERVICE_ACCOUNT_JSON_PATH: ${GOOGLE_SERVICE_ACCOUNT_JSON_PATH:-/secrets/google-service-account.json}
+      STORAGE_PATH: /data/localdata
+      X_ENABLED: "false"
+    volumes:
+      - localdata:/data/localdata
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      meilisearch: { condition: service_healthy }
+  caddy:
+    image: caddy:2-alpine
+    platform: linux/arm64
+    container_name: burupromo-caddy
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [web, api]
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    platform: linux/arm64
+    container_name: burupromo-umami
+    environment:
+      # Umami self-host, Rp0. Pakai Postgres yang sama, schema terpisah `umami`
+      # (dibuat infra/postgres/init/02-umami-schema.sql).
+      DATABASE_URL: postgresql://${POSTGRES_USER:-burupromo}:${POSTGRES_PASSWORD:-burupromo_dev}@postgres:5432/${POSTGRES_DB:-burupromo}?schema=umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET:-change_me_dev_only}
+      TRACKER_SCRIPT_NAME: getscript
+    ports: ["3002:3000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+volumes:
+  pgdata:
+  msdata:
+  localdata:
+  caddy_data:
+  caddy_config:

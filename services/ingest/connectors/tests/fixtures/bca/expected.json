@@ -1,0 +1,21 @@
+{
+  "source_id": "bca",
+  "listing_links": [
+    "https://promo.bca.co.id/id/all/2026/10/26/04/starting-lane",
+    "https://promo.bca.co.id/id/all/2026/10/26/04/contoh-promo-kopi-surabaya"
+  ],
+  "detail_1": {
+    "title": "Starting Lane",
+    "value_percent": 50,
+    "max_discount": 150000,
+    "voucher_code": "START50",
+    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+  },
+  "detail_2": {
+    "title": "Contoh Promo Kopi Surabaya",
+    "promo_type": "beli_x_gratis_y",
+    "voucher_code": null,
+    "ends_at_wib": "2026-12-15T23:59:59+07:00"
+  },
+  "note": "expected.json Fase 0: link listing + judul. Ekstraksi nilai/tanggal penuh diuji di vertical slice BCA (golden set LLM >= 30 promo)."
+}

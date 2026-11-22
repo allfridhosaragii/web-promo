@@ -1,0 +1,31 @@
+# BuruPromo — Caddy reverse proxy (revisi 2, ARCH §3.5.1).
+# HTTPS otomatis via Let's Encrypt (gratis). DOMAIN dari env DOMAIN di .env.
+# Tanpa DOMAIN (lokal), Caddy melayani http://localhost — tanpa TLS, cukup
+# untuk dev. Produksi: DOMAIN=burupromo.example (domain dibeli owner sendiri).
+# /api/* dan /v1/* -> API (Hono :3001). Sisanya -> web (Next.js :3000).
+# /umami/* -> Umami :3000 (analitik self-host; script di-load web bila
+# NEXT_PUBLIC_UMAMI_WEBSITE_ID diisi).
+{$DOMAIN:localhost} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+	handle /v1/* {
+		reverse_proxy api:3001
+	}
+	handle /umami/* {
+		reverse_proxy umami:3000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		# Header keamanan dasar (CSP ketat diatur di Next.js / API).
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
