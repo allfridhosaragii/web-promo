@@ -16,6 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from connectors.bank_bca import BankBCAConnector
+from connectors.bank_bni import BankBNIConnector
 from connectors.base import BaseConnector, RawItem
 from connectors.gopay import GoPayConnector
 from pipeline.categorize import categorize_promo
@@ -57,6 +58,7 @@ _PROMO_KEYWORDS = (
 _CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
     "bca": (BankBCAConnector, "BCA", "bca"),
     "gopay": (GoPayConnector, "GoPay", "gopay"),
+    "bni": (BankBNIConnector, "BNI", "bni"),
 }
 
 _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
@@ -70,6 +72,7 @@ _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
         "Paylater BCA",
     ),
     "gopay": ("GoPay", "GoPay Later", "GoPay Coins", "QRIS"),
+    "bni": ("Kartu Kredit BNI", "Kartu Debit BNI", "wondr by BNI", "QRIS BNI"),
 }
 
 
