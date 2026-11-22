@@ -1,0 +1,88 @@
+# BuruPromo CI — Fase 0. Lint, typecheck, test, cek fixture wajib.
+# TIDAK ada deploy, TIDAK ada panggilan API berbayar di CI.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  ts:
+    name: TypeScript (Biome + typecheck + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:ts
+      - run: pnpm typecheck
+      - run: pnpm test
+  python:
+    name: Python (Ruff + pytest + cek fixture)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with: { python-version: "3.12" }
+      - run: cd services/ingest && uv sync --frozen
+      - run: cd services/ingest && uv run ruff check . && uv run ruff format --check .
+      - run: cd services/ingest && uv run pytest -q
+      - name: Cek fixture wajib per konektor
+        run: python3 services/ingest/scripts/check_fixtures.py
+  validate:
+    name: Validasi file (JSON/YAML/seed wilayah)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      # PyYAML TIDAK terpasang default di runner — install dulu sebelum import yaml.
+      - run: pip install pyyaml
+      - run: python3 -c "import json; json.load(open('infra/meilisearch/settings.json'))"
+      - run: |
+          python3 - <<'PY'
+          import yaml
+          # Loader yang memahami tag Compose !reset / !override (dipakai prod override).
+          # add_multi_constructor memanggil dengan (loader, suffix, node) — 3 argumen.
+          def _reset(loader, suffix, node):
+              return []
+          def _override(loader, suffix, node):
+              return yaml.SafeLoader.construct_yaml_seq(loader, node)
+          yaml.SafeLoader.add_multi_constructor("!reset", _reset)
+          yaml.SafeLoader.add_multi_constructor("!override", _override)
+          for f in ["infra/docker-compose.yml", "infra/docker-compose.prod.yml", "apps/api/openapi.yaml", ".github/workflows/ci.yml"]:
+              yaml.safe_load(open(f))
+              print("YAML OK:", f)
+          PY
+      - name: Seed wilayah harus 38 kab/kota
+        run: |
+          python3 - <<'PY'
+          import csv
+          rows = list(csv.DictReader(open('packages/db/seed/wilayah/kepmendagri-300.2.2-2138-2025.csv')))
+          kab = [r for r in rows if r['level'] == 'kab_kota']
+          assert len(kab) == 38, f"kab/kota harus 38, dapat {len(kab)}"
+          assert len({r['code_dagri'] for r in kab}) == 38, "ada kode duplikat"
+          print("Seed wilayah OK: 38 kab/kota Jawa Timur")
+          PY
+      - name: Docker Compose config (tanpa menjalankan layanan)
+        run: docker compose -f infra/docker-compose.yml config -q
+      - name: Docker Compose prod config (tanpa menjalankan layanan)
+        # docker-compose.prod.yml mewajibkan DOMAIN (${DOMAIN:?}) — di CI isi dummy.
+        env:
+          DOMAIN: ci.example.com
+        run: docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml config -q
+  build-arm64:
+    name: Docker buildx linux/arm64 (smoke test, tanpa push)
+    # Runner ARM native (repo publik) — tanpa QEMU, build arm64 jalan langsung.
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image api/web/ingest/migrate/postgres untuk linux/arm64
+        run: |
+          for f in api web ingest migrate postgres; do
+            echo "== build infra/$f.Dockerfile (linux/arm64) =="
+            docker buildx build --platform linux/arm64 -f "infra/$f.Dockerfile" .
+          done
