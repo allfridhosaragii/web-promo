@@ -16,19 +16,30 @@
 name: burupromo
 services:
   postgres:
+    platform: linux/arm64
     ports: !reset []
   redis:
+    platform: linux/arm64
     ports: !reset []
   meilisearch:
+    platform: linux/arm64
     ports: !reset []
+  migrate:
+    platform: linux/arm64
   api:
+    platform: linux/arm64
     ports: !reset []
   web:
+    platform: linux/arm64
     ports: !reset []
-  umami:
-    ports: !reset []
+  ingest:
+    platform: linux/arm64
   caddy:
+    platform: linux/arm64
     environment:
       # Produksi WAJIB punya domain (satu-satunya biaya, owner beli sendiri).
       # Compose gagal dengan pesan jelas bila DOMAIN kosong.
       DOMAIN: ${DOMAIN:?DOMAIN wajib diisi di produksi (lihat .env.example)}
+  umami:
+    platform: linux/arm64
+    ports: !reset []

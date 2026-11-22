@@ -7,9 +7,7 @@ if (!url) {
   console.error("DATABASE_URL belum diisi (lihat .env.example)");
   process.exit(1);
 }
-const migrationsDir = fileURLToPath(
-  new URL("../migrations", import.meta.url),
-);
+const migrationsDir = fileURLToPath(new URL("../migrations", import.meta.url));
 const files = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql"))
   .sort();
