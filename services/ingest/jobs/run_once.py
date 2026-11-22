@@ -22,6 +22,7 @@ from connectors.base import BaseConnector, RawItem
 from connectors.cimb import CimbConnector
 from connectors.gopay import GoPayConnector
 from connectors.informa import InformaConnector
+from connectors.ovo import OvoConnector
 from pipeline.categorize import categorize_promo
 from pipeline.dedup import make_dedup_key
 from pipeline.expire import compute_lifecycle
@@ -65,6 +66,7 @@ _CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
     "azko": (AzkoConnector, "AZKO", "azko"),
     "informa": (InformaConnector, "Informa", "informa"),
     "cimb": (CimbConnector, "CIMB Niaga", "cimb-niaga"),
+    "ovo": (OvoConnector, "OVO", "ovo"),
 }
 
 _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
@@ -88,6 +90,7 @@ _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
         "OCTO Clicks",
         "QRIS",
     ),
+    "ovo": ("OVO", "OVO Cash", "OVO Points", "QRIS"),
 }
 
 

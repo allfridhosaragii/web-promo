@@ -1,0 +1,35 @@
+{
+  "source_id": "ovo",
+  "captured_at_wib": "2026-11-23T02:28:00+07:00",
+  "listing_links": [
+    "https://ovo.id/deals/view/15438",
+    "https://ovo.id/deals/view/41777",
+    "https://ovo.id/deals/view/42230",
+    "https://ovo.id/deals/view/42710",
+    "https://ovo.id/deals/view/42727",
+    "https://ovo.id/deals/view/42790",
+    "https://ovo.id/deals/view/42794",
+    "https://ovo.id/deals/view/42797",
+    "https://ovo.id/deals/view/42831"
+  ],
+  "detail_1": {
+    "source_url": "https://ovo.id/deals/view/42710",
+    "title": "Promo belanja online s/d Rp250rb",
+    "promo_type": "persen",
+    "value_percent": 5.0,
+    "min_purchase": 20000,
+    "voucher_code": null,
+    "starts_at_wib": "2026-11-01T00:00:00+07:00",
+    "ends_at_wib": "2026-11-09T23:59:59+07:00"
+  },
+  "detail_2": {
+    "source_url": "https://ovo.id/deals/view/42727",
+    "title": "Ada QRIS, ada OVO, ada promo!",
+    "promo_type": "cashback",
+    "value_percent": 5.0,
+    "min_purchase": 50000,
+    "voucher_code": null,
+    "starts_at_wib": "2026-10-01T00:00:00+07:00",
+    "ends_at_wib": "2026-10-24T23:59:59+07:00"
+  }
+}
