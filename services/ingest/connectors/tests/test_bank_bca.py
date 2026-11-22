@@ -7,6 +7,7 @@ import sys
 from datetime import UTC
 from pathlib import Path
 
+import httpx
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -95,3 +96,58 @@ async def test_robots_disallow_search() -> None:
     c._robots = c._robots_parser("User-agent: *\nAllow: /\nDisallow: /*/search\n", c.base_url)
     assert c._allowed_by_robots("https://promo.bca.co.id/id/all/2026/11/16/09/HUAWEI-Principle")
     assert not c._allowed_by_robots("https://promo.bca.co.id/id/search?q=kopi")
+
+
+def _mock_bca_transport() -> httpx.MockTransport:
+    detail_1 = (FIXTURES / "detail-1.html").read_text(encoding="utf-8")
+    detail_2 = (FIXTURES / "detail-2.html").read_text(encoding="utf-8")
+    sitemap_index = """<?xml version="1.0" encoding="UTF-8"?>
+    <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <sitemap><loc>https://promo.bca.co.id/1/sitemap.xml</loc></sitemap>
+    </sitemapindex>"""
+    child_sitemap = """<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://promo.bca.co.id/id/all/2026/11/16/09/HUAWEI-Principle</loc></url>
+      <url><loc>https://promo.bca.co.id/id/all/2026/11/20/10/emilia-cucina-italiana</loc></url>
+      <url><loc>https://promo.bca.co.id/id/search?q=should-be-skipped</loc></url>
+    </urlset>"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if url.endswith("/robots.txt"):
+            return httpx.Response(200, text="User-agent: *\nAllow: /\nDisallow: /*/search\n")
+        if url == "https://promo.bca.co.id/sitemap.xml":
+            return httpx.Response(200, text=sitemap_index)
+        if url == "https://promo.bca.co.id/1/sitemap.xml":
+            return httpx.Response(200, text=child_sitemap)
+        if url.endswith("/HUAWEI-Principle"):
+            return httpx.Response(200, text=detail_1)
+        if url.endswith("/emilia-cucina-italiana"):
+            return httpx.Response(200, text=detail_2)
+        return httpx.Response(404, text="Not found")
+
+    return httpx.MockTransport(handler)
+
+
+@pytest.mark.asyncio
+async def test_fetch_via_mock_transport() -> None:
+    c = BankBCAConnector(transport=_mock_bca_transport())
+    c.rate_limit_per_second = 0  # mock lokal tanpa sleep
+    items = await c.fetch(limit=10)
+    assert len(items) == 2
+    urls = [item.source_url for item in items]
+    assert "https://promo.bca.co.id/id/all/2026/11/16/09/HUAWEI-Principle" in urls
+    assert "https://promo.bca.co.id/id/all/2026/11/20/10/emilia-cucina-italiana" in urls
+    assert not any("/search" in u for u in urls)
+    assert items[0].title == "HUAWEI Principle - Diskon hingga Rp750 Ribu"
+
+
+@pytest.mark.asyncio
+async def test_health_check_via_mock_transport() -> None:
+    c = BankBCAConnector(transport=_mock_bca_transport())
+    c.rate_limit_per_second = 0
+    health = await c.health_check()
+    assert health.ok is True
+    assert health.source_id == "bca"
+    assert health.items_found == 3
+    assert health.last_success_at is not None

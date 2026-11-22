@@ -109,6 +109,10 @@ class BankBCAConnector(BaseConnector):
     sitemap_url = "https://promo.bca.co.id/sitemap.xml"
     robots_url = "https://promo.bca.co.id/robots.txt"
 
+    def __init__(self, transport: httpx.AsyncBaseTransport | None = None) -> None:
+        super().__init__()
+        self._transport = transport
+
     def _allowed_by_robots(self, url: str) -> bool:
         # Python 3.12 RobotFileParser belum mendukung wildcard /*/search;
         # pastikan /search selalu diblokir sesuai robots.txt promo.bca.co.id.
@@ -165,7 +169,10 @@ class BankBCAConnector(BaseConnector):
         headers = {"User-Agent": self.user_agent}
         items: list[RawItem] = []
         async with httpx.AsyncClient(
-            headers=headers, timeout=self.timeout_seconds, follow_redirects=True
+            headers=headers,
+            timeout=self.timeout_seconds,
+            follow_redirects=True,
+            transport=self._transport,
         ) as client:
             await self._load_robots(client)
             urls = await self._discover_urls(client, limit=limit)
@@ -202,7 +209,10 @@ class BankBCAConnector(BaseConnector):
         headers = {"User-Agent": self.user_agent}
         try:
             async with httpx.AsyncClient(
-                headers=headers, timeout=self.timeout_seconds, follow_redirects=True
+                headers=headers,
+                timeout=self.timeout_seconds,
+                follow_redirects=True,
+                transport=self._transport,
             ) as client:
                 xml_text = await self.fetch_with_retry(self._get_text, client, self.sitemap_url)
                 child_sitemaps, direct_urls = parse_sitemap_locs(xml_text)
