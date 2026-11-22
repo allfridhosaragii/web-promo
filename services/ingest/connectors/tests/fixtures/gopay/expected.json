@@ -1,0 +1,37 @@
+{
+  "source_id": "gopay",
+  "captured_at_wib": "2026-11-22T23:33:00+07:00",
+  "listing_links": [
+    "https://gopay.co.id/promo/tiket",
+    "https://gopay.co.id/promo/alfamart",
+    "https://gopay.co.id/promo/alfamidi",
+    "https://gopay.co.id/promo/google-play",
+    "https://gopay.co.id/promo/unipin",
+    "https://gopay.co.id/promo/xxi",
+    "https://gopay.co.id/promo/tokopedia",
+    "https://gopay.co.id/promo/alfagift",
+    "https://gopay.co.id/promo/xl-prioritas",
+    "https://gopay.co.id/promo/spotify-premium",
+    "https://gopay.co.id/promo/tiktok-shop",
+    "https://gopay.co.id/promo/mytelkomsel",
+    "https://gopay.co.id/promo/bima",
+    "https://gopay.co.id/promo/xl-prabayar",
+    "https://gopay.co.id/promo/indomaret"
+  ],
+  "detail_1": {
+    "source_url": "https://gopay.co.id/promo/tiket",
+    "title": "Promo tiket.com: Cashback Blibli Tiket Points s.d. Rp5.000 & Diskon s.d. Rp30.000",
+    "promo_type": "cashback",
+    "value_amount": 5000,
+    "voucher_code": null,
+    "ends_at_wib": "2026-12-31T23:59:59+07:00"
+  },
+  "detail_2": {
+    "source_url": "https://gopay.co.id/promo/alfamart",
+    "title": "Promo Alfamart: Belanja Apa Aja Makin Hemat Pakai GoPay",
+    "promo_type": "cashback",
+    "value_amount": 15000,
+    "voucher_code": null,
+    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+  }
+}

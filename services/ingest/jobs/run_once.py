@@ -16,7 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from connectors.bank_bca import BankBCAConnector
-from connectors.base import RawItem
+from connectors.base import BaseConnector, RawItem
+from connectors.gopay import GoPayConnector
 from pipeline.categorize import categorize_promo
 from pipeline.dedup import make_dedup_key
 from pipeline.expire import compute_lifecycle
@@ -53,15 +54,23 @@ _PROMO_KEYWORDS = (
     "poin",
     "berlaku",
 )
-_BCA_PAYMENTS = (
-    "myBCA",
-    "BCA mobile",
-    "QRIS",
-    "Sakuku",
-    "Kartu Kredit BCA",
-    "Kartu Debit BCA",
-    "Paylater BCA",
-)
+_CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
+    "bca": (BankBCAConnector, "BCA", "bca"),
+    "gopay": (GoPayConnector, "GoPay", "gopay"),
+}
+
+_PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
+    "bca": (
+        "myBCA",
+        "BCA mobile",
+        "QRIS",
+        "Sakuku",
+        "Kartu Kredit BCA",
+        "Kartu Debit BCA",
+        "Paylater BCA",
+    ),
+    "gopay": ("GoPay", "GoPay Later", "GoPay Coins", "QRIS"),
+}
 
 
 def is_promo_text(text: str, title: str | None = None) -> bool:
@@ -69,10 +78,11 @@ def is_promo_text(text: str, title: str | None = None) -> bool:
     return len(text) >= 20 and any(kw in haystack for kw in _PROMO_KEYWORDS)
 
 
-def _extract_payments(text: str) -> list[str]:
+def _extract_payments(text: str, source_id: str, fallback: str) -> list[str]:
     low = text.lower()
-    found = [p for p in _BCA_PAYMENTS if p.lower() in low]
-    return found or ["BCA"]
+    candidates = _PAYMENT_LABELS.get(source_id, (fallback,))
+    found = [p for p in candidates if p.lower() in low]
+    return found or [fallback]
 
 
 def _detect_channel(text: str) -> str:
@@ -107,23 +117,31 @@ def _run_sheets_sync(promos: list[dict]) -> str:
     return f"sukses ({res})"
 
 
-async def run_bca_once(limit: int = 20) -> dict:
-    if not is_source_enabled("bca"):
-        logger.warning("Sumber 'bca' sedang disabled (kill switch). Run dibatalkan.")
-        return {"skipped": True, "reason": "source_disabled"}
+async def run_source_once(source_id: str, limit: int = 20) -> dict:
+    if source_id not in _CONNECTORS:
+        raise ValueError(f"Sumber tidak dikenal: {source_id}")
+    if not is_source_enabled(source_id):
+        logger.warning("Sumber '%s' sedang disabled (kill switch). Run dibatalkan.", source_id)
+        return {"source_id": source_id, "skipped": True, "reason": "source_disabled"}
 
-    connector = BankBCAConnector()
+    connector_cls, platform_name, brand_slug = _CONNECTORS[source_id]
+    connector = connector_cls()
     health = await connector.health_check()
     update_source_health(health)
     logger.info(
-        "Health check BCA: ok=%s items_found=%s latency_ms=%s error=%s",
+        "Health check %s: ok=%s items_found=%s latency_ms=%s error=%s",
+        platform_name,
         health.ok,
         health.items_found,
         health.latency_ms,
         health.last_error,
     )
     if not health.ok:
-        return {"skipped": True, "reason": f"health_check_failed: {health.last_error}"}
+        return {
+            "source_id": source_id,
+            "skipped": True,
+            "reason": f"health_check_failed: {health.last_error}",
+        }
 
     raw_items: list[RawItem] = await connector.fetch(limit=limit)
     llm = LLMExtractor()
@@ -173,12 +191,12 @@ async def run_bca_once(limit: int = 20) -> dict:
                 "min_purchase": partial.get("min_purchase"),
                 "voucher_code": partial.get("voucher_code"),
                 "how_to_claim": None,
-                "payment_methods": _extract_payments(item.text),
+                "payment_methods": _extract_payments(item.text, source_id, platform_name),
                 "requirements": [],
                 "channel": _detect_channel(item.text),
-                "platform": "BCA",
+                "platform": platform_name,
                 "category_slugs": category_slugs,
-                "brand_slug": "bca",
+                "brand_slug": brand_slug,
                 "region_scope": region_scope,
                 "region_codes": region_codes,
                 "starts_at": starts_at,
@@ -214,11 +232,28 @@ async def run_bca_once(limit: int = 20) -> dict:
         "web_revalidated": revalidated,
         "failed": failed,
     }
-    print("=== RINGKASAN RUN BCA ===")
+    print(f"=== RINGKASAN RUN {platform_name.upper()} ===")
     for k, v in summary.items():
         print(f"  {k}: {v}")
     return summary
 
 
+async def run_bca_once(limit: int = 20) -> dict:
+    return await run_source_once("bca", limit=limit)
+
+
+async def run_all_once(sources: list[str] | None = None, limit: int = 20) -> list[dict]:
+    targets = sources or list(_CONNECTORS.keys())
+    return [await run_source_once(s, limit=limit) for s in targets]
+
+
 if __name__ == "__main__":
-    asyncio.run(run_bca_once())
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Runner sekali jalan BuruPromo")
+    parser.add_argument("--source", default="all", help="bca | gopay | all")
+    args = parser.parse_args()
+    if args.source == "all":
+        asyncio.run(run_all_once())
+    else:
+        asyncio.run(run_source_once(args.source))

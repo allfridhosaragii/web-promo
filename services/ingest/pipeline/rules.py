@@ -41,7 +41,7 @@ _BULAN = {
 }
 
 _DATE_RANGE_RE = re.compile(
-    r"(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?\s*[-–—]\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})",
+    r"(\d{1,2})(?:\s+([A-Za-z]+))?(?:\s+(\d{4}))?\s*[-–—]\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})",
     re.IGNORECASE,
 )
 _DATE_RE = re.compile(
@@ -69,6 +69,7 @@ _VOUCHER_RE = re.compile(
     r"(?:kode(?:\s*voucher|\s*promo)?|voucher(?:\s*code|\s*kode)?)\s*[:\-]?\s*([A-Z0-9]{4,20})",
     re.IGNORECASE,
 )
+_VOUCHER_STOPWORDS = {"GAME", "PROMO", "DISKON", "GRATIS", "BELANJA", "MAKAN", "VOUCHER"}
 _CASHBACK_PERCENT_RE = re.compile(r"cashback\s+(\d{1,3})\s*(?:%|persen)", re.IGNORECASE)
 
 
@@ -105,7 +106,9 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
     # --- tanggal mulai & berakhir ---
     rm = _DATE_RANGE_RE.search(text)
     if rm:
-        starts = _parse_date(rm.group(1), rm.group(2), rm.group(3) or rm.group(6), now)
+        starts = _parse_date(
+            rm.group(1), rm.group(2) or rm.group(5), rm.group(3) or rm.group(6), now
+        )
         if starts is not None:
             # starts_at dimulai 00:00:00 WIB hari tersebut
             out["starts_at"] = (
@@ -148,6 +151,13 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
         cm = _CASHBACK_PERCENT_RE.search(text)
         if cm and float(cm.group(1)) > 0:
             out["value_percent"] = float(cm.group(1))
+        else:
+            cleaned = _MIN_PURCHASE_RE.sub("", text)
+            am = _AMOUNT_RE.search(cleaned)
+            if am:
+                amount = _parse_amount(am.group(1), am.group(2))
+                if amount is not None:
+                    out["value_amount"] = amount
     else:
         # Prioritaskan diskon nominal eksplisit jika judul/teks menyebut "diskon hingga Rp..."
         dam = _DISCOUNT_AMOUNT_RE.search(text)
@@ -176,7 +186,7 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
 
     # --- kode voucher ---
     vm = _VOUCHER_RE.search(text)
-    if vm:
+    if vm and vm.group(1).upper() not in _VOUCHER_STOPWORDS:
         out["voucher_code"] = vm.group(1).upper()
 
     # --- pola berulang eksplisit: JSM = Jumat–Minggu (ARCH §5.3) ---
