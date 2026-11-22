@@ -19,6 +19,7 @@ from connectors.azko import AzkoConnector
 from connectors.bank_bca import BankBCAConnector
 from connectors.bank_bni import BankBNIConnector
 from connectors.base import BaseConnector, RawItem
+from connectors.cimb import CimbConnector
 from connectors.gopay import GoPayConnector
 from connectors.informa import InformaConnector
 from pipeline.categorize import categorize_promo
@@ -63,6 +64,7 @@ _CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
     "bni": (BankBNIConnector, "BNI", "bni"),
     "azko": (AzkoConnector, "AZKO", "azko"),
     "informa": (InformaConnector, "Informa", "informa"),
+    "cimb": (CimbConnector, "CIMB Niaga", "cimb-niaga"),
 }
 
 _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
@@ -79,6 +81,13 @@ _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
     "bni": ("Kartu Kredit BNI", "Kartu Debit BNI", "wondr by BNI", "QRIS BNI"),
     "azko": ("Member AZKO", "Rupiah", "Ruparupa"),
     "informa": ("INFORMA Rewards", "Member INFORMA", "Kartu Kredit", "Cicilan 0%"),
+    "cimb": (
+        "Kartu Kredit CIMB Niaga",
+        "Kartu Debit CIMB Niaga",
+        "OCTO Mobile",
+        "OCTO Clicks",
+        "QRIS",
+    ),
 }
 
 
@@ -152,7 +161,21 @@ async def run_source_once(source_id: str, limit: int = 20) -> dict:
             "reason": f"health_check_failed: {health.last_error}",
         }
 
-    raw_items: list[RawItem] = await connector.fetch(limit=limit)
+    try:
+        raw_items: list[RawItem] = await connector.fetch(limit=limit)
+    except Exception as exc:
+        logger.exception("Gagal fetch sumber %s", source_id)
+        return {
+            "source_id": source_id,
+            "raw_items": 0,
+            "classified_ok": 0,
+            "upserted_postgres": 0,
+            "indexable": 0,
+            "indexed_meilisearch": 0,
+            "sheets_sync": "dilewati",
+            "web_revalidated": False,
+            "failed": [f"fetch: {exc}"],
+        }
     llm = LLMExtractor()
     now = datetime.now(UTC)
 

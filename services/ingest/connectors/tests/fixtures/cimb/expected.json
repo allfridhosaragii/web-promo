@@ -1,0 +1,29 @@
+{
+  "source_id": "cimb",
+  "captured_at_wib": "2026-11-23T01:52:50+07:00",
+  "listing_sample_links": [
+    "https://www.cimbniaga.co.id/id/personal/promo/promo-detail.PRM-100426-00001",
+    "https://www.cimbniaga.co.id/id/personal/promo/promo-detail.PRM-141026-00001",
+    "https://www.cimbniaga.co.id/id/personal/promo/promo-detail.PRM-191026-00002"
+  ],
+  "detail_1": {
+    "source_url": "https://www.cimbniaga.co.id/id/personal/promo/promo-detail.PRM-141026-00001",
+    "title": "Daily Deals di Tokopedia",
+    "promo_type": "persen",
+    "value_percent": 10.0,
+    "min_purchase": 500000,
+    "voucher_code": null,
+    "starts_at_wib": "2026-11-11T00:00:00+07:00",
+    "ends_at_wib": "2026-11-24T23:59:59+07:00"
+  },
+  "detail_2": {
+    "source_url": "https://www.cimbniaga.co.id/id/personal/promo/promo-detail.PRM-191026-00002",
+    "title": "Mall Day Mega Deals Setiap Kamis di Tokopedia",
+    "promo_type": "persen",
+    "value_percent": 20.0,
+    "min_purchase": 350000,
+    "voucher_code": null,
+    "starts_at_wib": "2026-11-05T00:00:00+07:00",
+    "ends_at_wib": "2026-11-26T23:59:59+07:00"
+  }
+}

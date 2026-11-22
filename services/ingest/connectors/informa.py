@@ -129,28 +129,32 @@ class InformaConnector(BaseConnector):
         from playwright.async_api import async_playwright
 
         pages = []
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            try:
-                page = await browser.new_page(user_agent=self.user_agent)
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                try:
+                    page = await browser.new_page(user_agent=self.user_agent)
 
-                async def _render(target_url: str, wait_ms: int = 4000) -> str:
-                    await page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
-                    await page.wait_for_timeout(wait_ms)
-                    return await page.content()
+                    async def _render(target_url: str, wait_ms: int = 4000) -> str:
+                        await page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
+                        await page.wait_for_timeout(wait_ms)
+                        return await page.content()
 
-                listing_html = await self.fetch_with_retry(_render, self.base_url, 5000)
-                urls = [u for u in extract_promo_links(listing_html) if self._allowed_by_robots(u)][
-                    :limit
-                ]
-                for url in urls:
-                    try:
-                        html = await self.fetch_with_retry(_render, url, 4000)
-                        pages.append((url, html))
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning("Informa gagal render %s: %s", url, exc)
-            finally:
-                await browser.close()
+                    listing_html = await self.fetch_with_retry(_render, self.base_url, 5000)
+                    urls = [
+                        u for u in extract_promo_links(listing_html) if self._allowed_by_robots(u)
+                    ][:limit]
+                    for url in urls:
+                        try:
+                            html = await self.fetch_with_retry(_render, url, 4000)
+                            pages.append((url, html))
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning("Informa gagal render %s: %s", url, exc)
+                finally:
+                    await browser.close()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Informa gagal menjalankan Playwright Chromium: %s", exc)
+            return []
         return pages
 
     async def fetch(self, limit: int = MAX_PROMOS_PER_RUN) -> list[RawItem]:

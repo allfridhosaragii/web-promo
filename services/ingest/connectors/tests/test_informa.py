@@ -118,3 +118,27 @@ async def test_fetch_with_mock_fetcher() -> None:
 
     health = await c.health_check()
     assert health.ok is True
+
+
+@pytest.mark.asyncio
+async def test_fetch_returns_empty_when_playwright_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    def robots_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="User-agent: *\nAllow: /\nDisallow: /up\n")
+
+    class _BrokenPlaywright:
+        async def __aenter__(self) -> object:
+            raise RuntimeError("Executable doesn't exist")
+
+        async def __aexit__(self, *args: object) -> None:
+            return None
+
+    import playwright.async_api as pw_async
+
+    monkeypatch.setattr(pw_async, "async_playwright", lambda: _BrokenPlaywright())
+
+    c = InformaConnector(transport=httpx.MockTransport(robots_handler))
+    c.max_retries = 0
+    c.rate_limit_per_second = 0
+
+    items = await c.fetch(limit=5)
+    assert items == []
