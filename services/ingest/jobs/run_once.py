@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from connectors.azko import AzkoConnector
 from connectors.bank_bca import BankBCAConnector
 from connectors.bank_bni import BankBNIConnector
+from connectors.bank_mandiri import BankMandiriConnector
 from connectors.base import BaseConnector, RawItem
 from connectors.cimb import CimbConnector
 from connectors.gopay import GoPayConnector
@@ -69,6 +70,7 @@ _CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
     "cimb": (CimbConnector, "CIMB Niaga", "cimb-niaga"),
     "ovo": (OvoConnector, "OVO", "ovo"),
     "indomaret": (IndomaretConnector, "Indomaret", "indomaret"),
+    "mandiri": (BankMandiriConnector, "Bank Mandiri", "mandiri"),
 }
 
 _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
@@ -94,6 +96,13 @@ _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
     ),
     "ovo": ("OVO", "OVO Cash", "OVO Points", "QRIS"),
     "indomaret": ("i.saku", "Indomaret Poinku", "QRIS", "Kartu Debit", "Kartu Kredit"),
+    "mandiri": (
+        "Kartu Kredit Mandiri",
+        "Mandiri Debit",
+        "Livin' by Mandiri",
+        "Livin'poin",
+        "QRIS",
+    ),
 }
 
 

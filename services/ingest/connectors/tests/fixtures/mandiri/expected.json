@@ -1,0 +1,26 @@
+{
+  "source_id": "mandiri",
+  "captured_at_wib": "2026-11-23T05:43:30+07:00",
+  "listing_count": 28,
+  "listing_sample_links": [
+    "https://www.mandirikartukredit.com/hot-offer/promo-boga-group-hemat-20",
+    "https://www.mandirikartukredit.com/hot-offer/diskon-hingga-rp-200-000-diskon-hingga-20-tukar-livin-poin-di-gyukaku",
+    "https://www.mandirikartukredit.com/hot-offer/traveloka-everyday-deals-2026"
+  ],
+  "detail_1": {
+    "source_url": "https://www.mandirikartukredit.com/hot-offer/promo-boga-group-hemat-20",
+    "title": "Hemat 20% di Boga Group dengan Mandiri Kartu Kredit",
+    "promo_type": "persen",
+    "value_percent": 20.0,
+    "min_purchase": null,
+    "starts_at_wib": "2026-11-01T00:00:00+07:00",
+    "ends_at_wib": "2027-10-31T23:59:59+07:00"
+  },
+  "detail_2": {
+    "source_url": "https://www.mandirikartukredit.com/hot-offer/diskon-hingga-rp-200-000-diskon-hingga-20-tukar-livin-poin-di-gyukaku",
+    "title": "Diskon hingga 20% Tukar Livin’poin di Gyu Kaku",
+    "promo_type": "persen",
+    "value_percent": 20.0,
+    "min_purchase": 500000
+  }
+}
