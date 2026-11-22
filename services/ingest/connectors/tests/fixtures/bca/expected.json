@@ -1,21 +1,40 @@
 {
   "source_id": "bca",
+  "captured_at_wib": "2026-11-22T15:22:00+07:00",
   "listing_links": [
-    "https://promo.bca.co.id/id/all/2026/10/26/04/starting-lane",
-    "https://promo.bca.co.id/id/all/2026/10/26/04/contoh-promo-kopi-surabaya"
+    "https://promo.bca.co.id/id/all/2026/11/20/10/emilia-cucina-italiana",
+    "https://promo.bca.co.id/id/all/2026/11/20/09/radja-gurame",
+    "https://promo.bca.co.id/id/all/2026/11/20/08/soto-gading-1-laweyan",
+    "https://promo.bca.co.id/id/all/2026/11/20/06/Vegan-Carnaval-One",
+    "https://promo.bca.co.id/id/all/2026/11/20/05/hijab-expo-indonesia-2026",
+    "https://promo.bca.co.id/id/all/2026/11/20/02/rianty-batik-yogyakarta",
+    "https://promo.bca.co.id/id/all/2026/11/19/18/IM3",
+    "https://promo.bca.co.id/id/all/2026/11/19/16/Mac-Mini-M6-Mac-Studio-M5",
+    "https://promo.bca.co.id/id/all/2026/11/19/15/Dapur-Kita-Fresh-Market",
+    "https://promo.bca.co.id/id/all/2026/11/19/14/DPenyetz",
+    "https://promo.bca.co.id/id/all/2026/11/19/12/snl-food-batam-grocery-market",
+    "https://promo.bca.co.id/id/all/2026/11/19/11/Love-Seafood"
   ],
   "detail_1": {
-    "title": "Starting Lane",
-    "value_percent": 50,
-    "max_discount": 150000,
-    "voucher_code": "START50",
-    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+    "source_url": "https://promo.bca.co.id/id/all/2026/11/16/09/HUAWEI-Principle",
+    "title": "HUAWEI Principle - Diskon hingga Rp750 Ribu",
+    "promo_type": "potongan_nominal",
+    "value_percent": null,
+    "value_amount": 750000,
+    "max_discount": null,
+    "min_purchase": null,
+    "voucher_code": null,
+    "ends_at_wib": "2026-12-31T23:59:59+07:00"
   },
   "detail_2": {
-    "title": "Contoh Promo Kopi Surabaya",
-    "promo_type": "beli_x_gratis_y",
+    "source_url": "https://promo.bca.co.id/id/all/2026/11/20/10/emilia-cucina-italiana",
+    "title": "Emilia Cucina Italiana - Menu Spesial Birthday Treats",
+    "promo_type": "harga_spesial",
+    "value_percent": null,
+    "value_amount": null,
+    "max_discount": null,
+    "min_purchase": 800000,
     "voucher_code": null,
-    "ends_at_wib": "2026-12-15T23:59:59+07:00"
-  },
-  "note": "expected.json Fase 0: link listing + judul. Ekstraksi nilai/tanggal penuh diuji di vertical slice BCA (golden set LLM >= 30 promo)."
+    "ends_at_wib": "2027-08-31T23:59:59+07:00"
+  }
 }

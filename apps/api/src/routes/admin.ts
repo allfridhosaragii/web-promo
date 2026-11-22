@@ -1,54 +1,83 @@
+import { getPool } from "@burupromo/db";
 import { Hono } from "hono";
 
-// Admin — Fase 0 stub yang jujur (ARCH §16.5, §11.1, §17).
-// GET /admin/stats menampilkan kuota LLM hari ini + antrean + status sinkron
-// Spreadsheet terakhir. Angka di sini placeholder sampai worker ingest
-// menulis status nyata ke Redis/Postgres (vertical slice BCA).
-// Auth peran admin/moderator diaktifkan di Fase 1 (Better Auth) — endpoint
-// ini belum dipakai produksi dan mengembalikan 501 bila dipanggil tanpa
-// konteks admin yang sesungguhnya. Untuk sekarang: kembalikan status skeleton.
 export const admin = new Hono();
 
-admin.get("/stats", (c) =>
-  c.json({
+admin.get("/stats", async (c) => {
+  const pool = getPool();
+  const [counts, lastSync] = await Promise.all([
+    pool.query<{ lifecycle: string; cnt: string }>(
+      "SELECT lifecycle::text, COUNT(*)::text AS cnt FROM promos WHERE is_seed = FALSE GROUP BY lifecycle",
+    ),
+    pool.query<{
+      synced_at: Date;
+      status: string;
+      error: string | null;
+    }>(
+      "SELECT synced_at, status, error FROM sync_log ORDER BY synced_at DESC LIMIT 1",
+    ),
+  ]);
+
+  const byLifecycle = Object.fromEntries(
+    counts.rows.map((r) => [r.lifecycle, Number(r.cnt)]),
+  );
+
+  return c.json({
     data: {
+      promos: byLifecycle,
       llm: {
         provider: "gemini",
-        // Model TIDAK dikunci di kode — diisi owner dari AI Studio (ARCH §11.1).
         model: process.env.LLM_MODEL ? "(terisi dari .env)" : null,
         billing: "none — free tier, tanpa billing account",
         daily_limit_requests: Number(process.env.LLM_DAILY_REQUEST_LIMIT ?? 20),
         rpm_limit: Number(process.env.LLM_RPM ?? 10),
-        used_today: null,
-        remaining_today: null,
         reset_at_pt: "00:00 America/Los_Angeles",
-        queued_llm: null,
-        note: "Status kuota nyata diisi worker ingest (QuotaGuard.status) di vertical slice BCA.",
       },
       sheets_sync: {
         enabled: Boolean(process.env.GOOGLE_SHEETS_SPREADSHEET_ID),
         spreadsheet_id: process.env.GOOGLE_SHEETS_SPREADSHEET_ID
           ? "(terisi)"
           : null,
-        queued_sheets: null,
-        last_success_at: null,
-        last_error: null,
-        note: "Status sinkron nyata diisi worker ingest (SheetsSync.status + tabel sync_log) di vertical slice BCA.",
+        last_success_at:
+          lastSync.rows[0]?.status === "ok"
+            ? new Date(lastSync.rows[0].synced_at).toISOString()
+            : null,
+        last_error: lastSync.rows[0]?.error ?? null,
       },
       vm: {
-        hosting: "Oracle Cloud Always Free (rencana) — Fase 0 jalan lokal",
-        note: "Status VM (CPU/RAM/disk) + sisa jatah Oracle diinput manual dari console.",
+        hosting: "Oracle Cloud Always Free (rencana) — jalan lokal",
       },
     },
-    meta: { phase: "0-skeleton" },
-  }),
-);
+    meta: { phase: "1-vertical-slice-bca" },
+  });
+});
 
-admin.get("/sources", (c) =>
-  c.json({
-    data: [],
-    meta: {
-      note: "Semua konektor disabled di Fase 0 — kill switch aktif di vertical slice.",
-    },
-  }),
-);
+admin.get("/sources", async (c) => {
+  const pool = getPool();
+  const res = await pool.query(
+    `SELECT source_id, name, type::text, status, enabled, schedule_cron,
+            base_url, last_success_at, last_error, last_latency_ms
+     FROM sources
+     ORDER BY source_id`,
+  );
+  return c.json({ data: res.rows });
+});
+
+admin.post("/sources/:sourceId/toggle", async (c) => {
+  const sourceId = c.req.param("sourceId");
+  const pool = getPool();
+  const res = await pool.query(
+    `UPDATE sources
+     SET enabled = NOT enabled
+     WHERE source_id = $1
+     RETURNING source_id, enabled, status`,
+    [sourceId],
+  );
+  if (res.rowCount === 0) {
+    return c.json(
+      { error: { code: "NOT_FOUND", message: "Sumber tidak ditemukan." } },
+      404,
+    );
+  }
+  return c.json({ data: res.rows[0] });
+});

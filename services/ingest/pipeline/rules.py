@@ -40,6 +40,10 @@ _BULAN = {
     "desember": 12,
 }
 
+_DATE_RANGE_RE = re.compile(
+    r"(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?\s*[-–—]\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})",
+    re.IGNORECASE,
+)
 _DATE_RE = re.compile(
     r"(?:s\.?\s*d\.?|sampai|hingga|berakhir|berlaku\s+(?:sampai|hingga)?|sd\.?)\s+"
     r"(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?",
@@ -47,6 +51,10 @@ _DATE_RE = re.compile(
 )
 _DATE_BARE_RE = re.compile(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", re.IGNORECASE)
 _PERCENT_RE = re.compile(r"(\d{1,3})\s*(?:%|persen)", re.IGNORECASE)
+_DISCOUNT_AMOUNT_RE = re.compile(
+    r"(?:diskon|potongan|hemat|cashback)(?:\s+hingga)?\s+(?:rp|idr)\s*([\d.,]+)\s*(rb|ribu)?",
+    re.IGNORECASE,
+)
 _AMOUNT_RE = re.compile(r"(?:rp|idr)\s*([\d.,]+)\s*(rb|ribu)?", re.IGNORECASE)
 _MIN_PURCHASE_RE = re.compile(
     r"(?:min(?:imal)?\.?|minimum)\s*(?:belanja|pembelian|transaksi)?\s*"
@@ -94,37 +102,33 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
     out: dict = {}
     low = text.lower()
 
-    # --- tanggal berakhir ---
-    m = _DATE_RE.search(text) or _DATE_BARE_RE.search(text)
-    if m:
-        ends = _parse_date(
-            m.group(1), m.group(2), m.group(3) if m.lastindex and m.lastindex >= 3 else None, now
-        )
+    # --- tanggal mulai & berakhir ---
+    rm = _DATE_RANGE_RE.search(text)
+    if rm:
+        starts = _parse_date(rm.group(1), rm.group(2), rm.group(3) or rm.group(6), now)
+        if starts is not None:
+            # starts_at dimulai 00:00:00 WIB hari tersebut
+            out["starts_at"] = (
+                starts.astimezone(WIB)
+                .replace(hour=0, minute=0, second=0, microsecond=0)
+                .astimezone(UTC)
+            )
+        ends = _parse_date(rm.group(4), rm.group(5), rm.group(6), now)
         if ends is not None:
             out["ends_at"] = ends
-
-    # --- tipe + nilai ---
-    if "gratis ongkir" in low or "bebas ongkir" in low or "ongkir 0" in low:
-        out["promo_type"] = "gratis_ongkir"
-    elif "cashback" in low:
-        out["promo_type"] = "cashback"
-        cm = _CASHBACK_PERCENT_RE.search(text)
-        if cm:
-            out["value_percent"] = float(cm.group(1))
     else:
-        pm = _PERCENT_RE.search(text)
-        if pm:
-            out["promo_type"] = "persen"
-            out["value_percent"] = float(pm.group(1))
-        else:
-            am = _AMOUNT_RE.search(text)
-            if am:
-                out["promo_type"] = "potongan_nominal"
-                amount = _parse_amount(am.group(1), am.group(2))
-                if amount is not None:
-                    out["value_amount"] = amount
+        m = _DATE_RE.search(text) or _DATE_BARE_RE.search(text)
+        if m:
+            ends = _parse_date(
+                m.group(1),
+                m.group(2),
+                m.group(3) if m.lastindex and m.lastindex >= 3 else None,
+                now,
+            )
+            if ends is not None:
+                out["ends_at"] = ends
 
-    # --- batas diskon / minimal belanja ---
+    # --- batas diskon / minimal belanja (ekstrak dulu agar tidak tertukar value_amount) ---
     mx = _MAX_DISCOUNT_RE.search(text)
     if mx:
         amount = _parse_amount(mx.group(1), mx.group(2))
@@ -135,6 +139,40 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
         amount = _parse_amount(mn.group(1), mn.group(2))
         if amount is not None:
             out["min_purchase"] = amount
+
+    # --- tipe + nilai ---
+    if "gratis ongkir" in low or "bebas ongkir" in low or "ongkir 0" in low:
+        out["promo_type"] = "gratis_ongkir"
+    elif "cashback" in low:
+        out["promo_type"] = "cashback"
+        cm = _CASHBACK_PERCENT_RE.search(text)
+        if cm and float(cm.group(1)) > 0:
+            out["value_percent"] = float(cm.group(1))
+    else:
+        # Prioritaskan diskon nominal eksplisit jika judul/teks menyebut "diskon hingga Rp..."
+        dam = _DISCOUNT_AMOUNT_RE.search(text)
+        pm = next((m for m in _PERCENT_RE.finditer(text) if float(m.group(1)) > 0), None)
+        if pm and (not dam or pm.start() < dam.start()):
+            out["promo_type"] = "persen"
+            out["value_percent"] = float(pm.group(1))
+        elif dam:
+            out["promo_type"] = "potongan_nominal"
+            amount = _parse_amount(dam.group(1), dam.group(2))
+            if amount is not None:
+                out["value_amount"] = amount
+        else:
+            # Cari Rp... di luar teks minimal belanja
+            cleaned = _MIN_PURCHASE_RE.sub("", text)
+            am = _AMOUNT_RE.search(cleaned)
+            if am:
+                out["promo_type"] = "potongan_nominal"
+                amount = _parse_amount(am.group(1), am.group(2))
+                if amount is not None:
+                    out["value_amount"] = amount
+            elif "harga spesial" in low or "menu spesial" in low:
+                out["promo_type"] = "harga_spesial"
+            elif "cicilan" in low and "0%" in low:
+                out["promo_type"] = "cicilan_0"
 
     # --- kode voucher ---
     vm = _VOUCHER_RE.search(text)

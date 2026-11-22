@@ -15,6 +15,7 @@ dependencies = [
   # Sinkron Spreadsheet (ARCH §17, revisi 2) — service account, tanpa billing.
   "google-api-python-client>=2.150.0",
   "google-auth>=2.35.0",
+  "psycopg[binary]>=3.2.0",
 ]
 
 [dependency-groups]
