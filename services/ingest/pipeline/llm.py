@@ -208,7 +208,7 @@ class LLMExtractor:
 
     @property
     def api_key(self) -> str | None:
-        return os.environ.get("GEMINI_API_KEY") or None
+        return os.environ.get("LLM_API_KEY") or os.environ.get("GEMINI_API_KEY") or None
 
     async def extract(self, text: str, content_hash: str | None = None) -> ExtractionResult:
         key = content_hash or hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -258,9 +258,12 @@ class LLMExtractor:
                 note=f"{exc} Item tidak diantrekan — retry oleh scheduler dengan backoff.",
             )
 
-        # Kuota tersedia + API key + model ada -> panggil Gemini (google-genai).
+        # Kuota tersedia + API key + model ada -> panggil provider LLM.
         try:
-            llm_fields = self._call_gemini(text)
+            if self.config.base_url:
+                llm_fields = self._call_openai_compat(text)
+            else:
+                llm_fields = self._call_gemini(text)
         except RateLimitedError:
             return ExtractionResult(
                 fields=rules,
@@ -334,4 +337,38 @@ class LLMExtractor:
                 ) from exc
             raise
         parsed = json.loads(response.text or "{}")
+        return parsed if isinstance(parsed, dict) else {}
+
+    def _call_openai_compat(self, text: str) -> dict:
+        """Panggil endpoint OpenAI-compatible saat LLM_BASE_URL diisi manual oleh owner."""
+        import httpx
+
+        url = f"{self.config.base_url.rstrip('/')}/chat/completions"
+        prompt = (
+            "Ekstrak info promo dari teks berikut dan kembalikan JSON object saja "
+            "(tanpa markdown) dengan field: value_percent, value_amount, max_discount, "
+            "min_purchase, voucher_code, promo_type, ends_at (ISO +07:00), recurring_rule. "
+            "Field yang tidak ada di teks isi null.\n\n"
+            f"{text}"
+        )
+        resp = httpx.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": self.config.model,
+                "temperature": 0,
+                "response_format": {"type": "json_object"},
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=30.0,
+        )
+        if resp.status_code == 429:
+            self.guard.note_429()
+            raise RateLimitedError("LLM endpoint mengembalikan 429.")
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        parsed = json.loads(content or "{}")
         return parsed if isinstance(parsed, dict) else {}

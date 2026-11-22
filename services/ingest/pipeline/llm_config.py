@@ -30,6 +30,7 @@ class LLMConfig:
     # Nama model persis seperti di AI Studio, mis. "gemini-2.5-flash-lite".
     # Kosong = LLM nonaktif (aturan saja).
     model: str = ""
+    base_url: str = ""
     rpm: int = 10  # fallback terburuk; isi dari AI Studio
     daily_request_limit: int = 20  # fallback terburuk (RPD); isi dari AI Studio
     tpm: int = 250_000  # fallback terburuk; isi dari AI Studio
@@ -46,6 +47,7 @@ class LLMConfig:
 
         return cls(
             model=str(src.get("LLM_MODEL", "") or "").strip(),
+            base_url=str(src.get("LLM_BASE_URL", "") or "").strip(),
             rpm=_int("LLM_RPM", 10),
             daily_request_limit=_int("LLM_DAILY_REQUEST_LIMIT", 20),
             tpm=_int("LLM_TPM", 250_000),
@@ -54,6 +56,7 @@ class LLMConfig:
     def to_status(self) -> dict:
         return {
             "model": self.model or None,
+            "base_url": self.base_url or None,
             "rpm": self.rpm,
             "daily_request_limit": self.daily_request_limit,
             "tpm": self.tpm,

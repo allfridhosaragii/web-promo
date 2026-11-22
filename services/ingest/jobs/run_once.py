@@ -143,17 +143,11 @@ async def run_bca_once(limit: int = 20) -> dict:
 
             partial = extract_rules(item.text, now=now)
             if needs_llm(partial):
-                llm_res = llm.extract(item.text, partial)
-                if llm_res.extracted is not None:
-                    ext = llm_res.extracted
-                    partial.setdefault("promo_type", ext.promo_type)
-                    partial.setdefault("value_percent", ext.value_percent)
-                    partial.setdefault("value_amount", ext.value_amount)
-                    partial.setdefault("max_discount", ext.max_discount)
-                    partial.setdefault("min_purchase", ext.min_purchase)
-                    partial.setdefault("voucher_code", ext.voucher_code)
-                    partial.setdefault("starts_at", ext.starts_at)
-                    partial.setdefault("ends_at", ext.ends_at)
+                llm_res = await llm.extract(item.text, content_hash=item.content_hash)
+                if llm_res.llm_used:
+                    for k, v in llm_res.fields.items():
+                        if k not in partial and v is not None:
+                            partial[k] = v
 
             title = item.title or item.text[:80]
             promo_type = partial.get("promo_type") or "lainnya"

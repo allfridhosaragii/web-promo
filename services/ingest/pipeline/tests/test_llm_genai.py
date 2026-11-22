@@ -126,3 +126,37 @@ async def test_extract_429_returns_rules_without_crashing(monkeypatch) -> None:
     assert result.needs_review is True
     assert "429" in result.note
     assert json.dumps(result.fields)  # fields tetap JSON-serializable
+
+
+@pytest.mark.asyncio
+async def test_extract_with_custom_base_url_and_api_key(monkeypatch) -> None:
+    import httpx
+
+    captured: dict = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        return httpx.Response(
+            200,
+            request=httpx.Request("POST", url),
+            json={
+                "choices": [
+                    {"message": {"content": '{"value_percent": 30, "voucher_code": "KUSTOM30"}'}}
+                ]
+            },
+        )
+
+    monkeypatch.setenv("LLM_API_KEY", "sk-custom-test")
+    monkeypatch.setenv("LLM_BASE_URL", "https://custom-llm.example/v1/")
+    monkeypatch.setenv("LLM_MODEL", "custom-model-v1")
+    monkeypatch.setattr(httpx, "post", fake_post)
+
+    ex = LLMExtractor()
+    result = await ex.extract("Promo spesial makan siang tanpa tanggal")
+    assert result.llm_used is True
+    assert captured["url"] == "https://custom-llm.example/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer sk-custom-test"
+    assert captured["json"]["model"] == "custom-model-v1"
+    assert result.fields["voucher_code"] == "KUSTOM30"
