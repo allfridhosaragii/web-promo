@@ -14,9 +14,10 @@ admin.get("/stats", (c) =>
     data: {
       llm: {
         provider: "gemini",
-        model: "gemini-2.5-flash-lite",
+        // Model TIDAK dikunci di kode — diisi owner dari AI Studio (ARCH §11.1).
+        model: process.env.LLM_MODEL ? "(terisi dari .env)" : null,
         billing: "none — free tier, tanpa billing account",
-        daily_limit_requests: Number(process.env.LLM_DAILY_REQUESTS ?? 20),
+        daily_limit_requests: Number(process.env.LLM_DAILY_REQUEST_LIMIT ?? 20),
         rpm_limit: Number(process.env.LLM_RPM ?? 10),
         used_today: null,
         remaining_today: null,
@@ -46,6 +47,8 @@ admin.get("/stats", (c) =>
 admin.get("/sources", (c) =>
   c.json({
     data: [],
-    meta: { note: "Semua konektor disabled di Fase 0 — kill switch aktif di vertical slice." },
+    meta: {
+      note: "Semua konektor disabled di Fase 0 — kill switch aktif di vertical slice.",
+    },
   }),
 );

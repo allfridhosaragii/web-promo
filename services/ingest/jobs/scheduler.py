@@ -9,8 +9,12 @@ from __future__ import annotations
 
 SCHEDULES = {
     "expire": "*/10 * * * *",
+    # Recheck 6 jam: promo TANPA ends_at dicek tiap jalan (6 jam, lebih sering —
+    # pipeline/expire.py recheck_due), promo dengan ends_at tiap 24 jam
+    # (kecuali segera berakhir: tiap 1 jam). Lihat ARCH §5.3 (A5).
     "recheck": "0 */6 * * *",
     "cleanup_raw_items": "0 3 * * *",  # 03:00 WIB — TTL raw_items 30 hari
+    "sheets_flush": "setiap 30 detik (debounce) / 50 baris — lihat sync/sheets.py",
 }
 
 

@@ -13,9 +13,8 @@ export function initSentry(): void {
       Sentry.init({
         dsn,
         tracesSampleRate: 0.1,
-        // Replay dimatikan (default): hemat kuota 50 replay/bulan.
-        replaysSessionSampleRate: 0,
-        replaysOnErrorSampleRate: 0,
+        // Tidak ada opsi replay di @sentry/node — replay hanya ada di SDK browser.
+        // Di server tidak ada replay yang tercatat, jadi kuota 50 replay/bulan aman.
         environment: process.env.NODE_ENV ?? "development",
       });
     })

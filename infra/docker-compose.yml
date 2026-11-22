@@ -8,7 +8,8 @@
 # R2 DIHAPUS (revisi 2) — thumbnail di volume lokal `localdata` (200 GB block
 # Oracle) atau Oracle Object Storage free tier (opsional, 20 GB).
 # LLM: Gemini FREE TIER saja, TANPA billing account. Budget USD DIHAPUS,
-# diganti quota guard: LLM_DAILY_REQUESTS (default 20) + LLM_RPM (default 10).
+# diganti quota guard (jumlah request, ARCH §11.1): LLM_MODEL (diisi owner
+# dari AI Studio) + LLM_DAILY_REQUEST_LIMIT + LLM_RPM + LLM_TPM.
 name: burupromo
 services:
   postgres:
@@ -22,7 +23,9 @@ services:
     ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ../packages/db/migrations:/docker-entrypoint-initdb.d/migrations:ro
+    # JANGAN mount migrasi ke initdb.d — Postgres hanya mengeksekusi file di
+    # ROOT initdb.d, bukan subfolder (D9). Migrasi jalan via service `migrate`
+    # di bawah (one-shot, sebelum api start).
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-burupromo}"]
       interval: 5s
@@ -52,6 +55,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 12
+  migrate:
+    build: { context: .., dockerfile: infra/migrate.Dockerfile }
+    platform: linux/arm64
+    container_name: burupromo-migrate
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-burupromo}:${POSTGRES_PASSWORD:-burupromo_dev}@postgres:5432/${POSTGRES_DB:-burupromo}
+    depends_on:
+      postgres: { condition: service_healthy }
   api:
     build: { context: .., dockerfile: infra/api.Dockerfile }
     platform: linux/arm64
@@ -71,6 +82,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       meilisearch: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
   web:
     build: { context: .., dockerfile: infra/web.Dockerfile }
     platform: linux/arm64
@@ -94,10 +106,15 @@ services:
       MEILISEARCH_HOST: http://meilisearch:7700
       MEILISEARCH_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-change_me_dev_only}
       # LLM free tier — quota guard (jumlah request, BUKAN rupiah). Tanpa
-      # GEMINI_API_KEY, tidak ada panggilan. Tanpa billing account, Rp0.
-      LLM_DAILY_REQUESTS: ${LLM_DAILY_REQUESTS:-20}
+      # GEMINI_API_KEY atau tanpa LLM_MODEL, tidak ada panggilan.
+      # Tanpa billing account, Rp0. Model dipilih owner dari AI Studio (§11.1).
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_DAILY_REQUEST_LIMIT: ${LLM_DAILY_REQUEST_LIMIT:-20}
       LLM_RPM: ${LLM_RPM:-10}
+      LLM_TPM: ${LLM_TPM:-250000}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      WEB_BASE_URL: http://web:3000
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
       # Sinkron Spreadsheet (ARCH §17) — service account, file key DI LUAR repo.
       GOOGLE_SHEETS_SPREADSHEET_ID: ${GOOGLE_SHEETS_SPREADSHEET_ID:-}
       GOOGLE_SERVICE_ACCOUNT_JSON_PATH: ${GOOGLE_SERVICE_ACCOUNT_JSON_PATH:-/secrets/google-service-account.json}

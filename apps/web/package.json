@@ -8,20 +8,23 @@
     "build": "next build",
     "start": "next start -p 3000",
     "lint": "biome check src",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@burupromo/contracts": "workspace:*",
+    "@burupromo/ui": "workspace:*",
+    "@sentry/nextjs": "^9.0.0",
     "next": "^15.0.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@burupromo/contracts": "workspace:*",
-    "@burupromo/ui": "workspace:*"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
-    "tailwindcss": "^3.4.17",
     "autoprefixer": "^10.4.20",
-    "postcss": "^8.4.49"
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vitest": "^2.1.9"
   }
 }

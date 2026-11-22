@@ -1,5 +1,5 @@
-# BuruPromo — Fase 0 (lokal, Docker Compose). Tanpa deploy berbayar.
-.PHONY: dev build lint typecheck test test-py check-fixtures seed meilisearch-settings up down
+# BuruPromo — Fase 0 (lokal, Docker Compose). Revisi 2: SEMUA Rp0.
+.PHONY: dev build lint typecheck test test-py check-fixtures seed meilisearch-settings up up-prod down migrate
 
 dev: ## Jalankan web + api (butuh pnpm install dulu)
 	pnpm dev
@@ -30,8 +30,14 @@ seed: ## Seed wilayah Jawa Timur (gagal kalau bukan 38 kab/kota)
 meilisearch-settings:
 	bash infra/meilisearch/apply-settings.sh
 
-up: ## Nyalakan semua layanan lokal
+up: ## Nyalakan semua layanan lokal (migrate jalan dulu, one-shot)
 	docker compose -f infra/docker-compose.yml up -d
+
+up-prod: ## Nyalakan di VM produksi (hanya Caddy 80/443 terbuka, butuh DOMAIN)
+	docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d
+
+migrate: ## Jalankan migrasi Drizzle (one-shot, bukan initdb.d)
+	docker compose -f infra/docker-compose.yml run --rm migrate
 
 down:
 	docker compose -f infra/docker-compose.yml down

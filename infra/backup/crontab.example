@@ -1,0 +1,7 @@
+# BuruPromo — contoh cron backup harian 02:00 WIB (ARCH §3.5.2).
+# VM Oracle harus memakai zona waktu Asia/Jakarta (timedatectl set-timezone Asia/Jakarta).
+# Pasang dengan: crontab infra/backup/crontab.example  (atau salin barisnya ke `crontab -e`)
+# Sesuaikan path repo (/opt/burupromo) dengan lokasi checkout di VM.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 2 * * * cd /opt/burupromo && COMPOSE_ARGS="-f infra/docker-compose.yml -f infra/docker-compose.prod.yml" BACKUP_DIR=/var/backups/burupromo bash infra/backup/backup.sh >> /var/log/burupromo-backup.log 2>&1

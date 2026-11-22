@@ -1,5 +1,12 @@
-/** Hitung mundur sederhana dari ends_at (ISO UTC) ke WIB. Tanpa jam hidup di Fase 0. */
-export function Countdown({ endsAt }: { endsAt: string }) {
+/** Hitung mundur sederhana dari ends_at (ISO UTC) ke WIB. Tanpa jam hidup di Fase 0.
+ * endsAt null = "Tanpa batas waktu" (ARCH §5.3, A5). */
+export function Countdown({ endsAt }: { endsAt: string | null }) {
+  if (endsAt == null)
+    return (
+      <span className="font-semibold text-[var(--bp-valid)]">
+        Tanpa batas waktu
+      </span>
+    );
   const end = new Date(endsAt).getTime();
   const diffMs = end - Date.now();
   if (diffMs <= 0)

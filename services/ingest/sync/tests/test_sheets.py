@@ -1,5 +1,10 @@
 """Test sinkron Spreadsheet — mock Sheets API, TANPA request live,
-tanpa kredensial asli (ARCH §17)."""
+tanpa kredensial asli (ARCH §17 + perbaikan E).
+
+Perbaikan E: "Promo Aktif" ditulis ulang PENUH tiap sinkron (rewrite_sheet
+dalam 1 batchUpdate) — JANGAN hapus baris satu-satu (nomor baris bergeser).
+"Arsip" & "Log Sinkron" tetap append dengan cek id.
+"""
 
 from __future__ import annotations
 
@@ -54,7 +59,7 @@ class FakeSheetsClient:
             "Log Sinkron": [HEADERS_LOG],
         }
         self.fail_times = fail_times
-        self.batch_calls = 0
+        self.rewrite_calls = 0
         self.failures = 0
 
     def _maybe_fail(self) -> None:
@@ -64,19 +69,13 @@ class FakeSheetsClient:
 
     def get_ids(self, sheet: str) -> list[str]:
         # Seperti range A2:A di client asli: header (baris 1) dilewati.
-        return [row[0] for row in self.sheets[sheet][1:]]
+        return [row[0] for row in self.sheets[sheet][1:] if row and row[0]]
 
-    def batch_update(self, sheet: str, updates, appends) -> None:
+    def rewrite_sheet(self, sheet: str, rows: list[list[str]]) -> None:
         self._maybe_fail()
-        self.batch_calls += 1
-        for row_no, values in updates.items():
-            self.sheets[sheet][row_no - 1] = values
-        self.sheets[sheet].extend(appends)
-
-    def delete_rows(self, sheet: str, rows) -> None:
-        self._maybe_fail()
-        for row_no in sorted(rows, reverse=True):
-            del self.sheets[sheet][row_no - 1]
+        self.rewrite_calls += 1
+        # Tulis ulang penuh: isi lama hilang seluruhnya (termasuk ekor basi).
+        self.sheets[sheet] = [list(r) for r in rows]
 
     def append_rows(self, sheet: str, rows) -> None:
         self._maybe_fail()
@@ -104,7 +103,7 @@ def test_promo_to_row_columns_and_wib_format() -> None:
     assert len(row) == 13
 
 
-def test_upsert_same_id_updates_in_place_no_duplicate() -> None:
+def test_full_rewrite_upsert_same_id_no_duplicate() -> None:
     client = FakeSheetsClient()
     sync = _sync(client)
     sync.queue_upsert(_promo())
@@ -114,33 +113,55 @@ def test_upsert_same_id_updates_in_place_no_duplicate() -> None:
     sync.flush()
     assert len(client.sheets[SHEET_ACTIVE]) == 2
     assert client.sheets[SHEET_ACTIVE][1][1] == "Diskon 50% Kopi — Updated"
+    assert client.rewrite_calls == 2  # tiap flush = 1 rewrite penuh
 
 
-def test_batch_many_promos_one_batch_call() -> None:
+def test_full_rewrite_shrinking_set_leaves_no_stale_rows() -> None:
+    # Regresi E: dulu hapus baris satu-satu -> nomor bergeser -> duplikat/basi.
+    client = FakeSheetsClient()
+    sync = _sync(client)
+    sync.queue_upsert(_promo(id="id-1", title="Promo 1"))
+    sync.queue_upsert(_promo(id="id-2", title="Promo 2"))
+    sync.flush()
+    assert len(client.sheets[SHEET_ACTIVE]) == 3  # header + 2
+    sync.queue_archive(_promo(id="id-2", title="Promo 2", status="kedaluwarsa"), "kedaluwarsa")
+    sync.flush()
+    active = client.sheets[SHEET_ACTIVE]
+    assert len(active) == 2  # header + 1 — Promo 2 HILANG, tidak ada baris basi
+    assert active[1][0] == "id-1"
+    assert len(client.sheets[SHEET_ARCHIVE]) == 2
+    assert client.sheets[SHEET_ARCHIVE][1][-1] == "kedaluwarsa"
+
+
+def test_batch_many_promos_one_rewrite() -> None:
     client = FakeSheetsClient()
     sync = _sync(client)
     for i in range(3):
         sync.queue_upsert(_promo(id=f"id-{i}", title=f"Promo {i}"))
-    assert sync.pending_count == 3
     sync.flush()
-    assert client.batch_calls == 1  # 3 promo = 1 batchUpdate (hemat kuota)
+    assert client.rewrite_calls == 1  # 3 promo = 1 rewrite (hemat kuota)
     assert len(client.sheets[SHEET_ACTIVE]) == 4  # header + 3 data
 
 
-def test_archive_moves_row_and_is_idempotent() -> None:
+def test_archive_is_idempotent() -> None:
     client = FakeSheetsClient()
     sync = _sync(client)
     sync.queue_upsert(_promo())
     sync.flush()
     sync.queue_archive(_promo(status="kedaluwarsa"), reason="kedaluwarsa")
     sync.flush()
-    assert len(client.sheets[SHEET_ACTIVE]) == 1  # tinggal header
-    assert len(client.sheets[SHEET_ARCHIVE]) == 2  # header + 1 data
-    assert client.sheets[SHEET_ARCHIVE][1][-1] == "kedaluwarsa"
-    # Arsip kedua kali: tidak boleh duplikat.
     sync.queue_archive(_promo(status="kedaluwarsa"), reason="kedaluwarsa")
     sync.flush()
-    assert len(client.sheets[SHEET_ARCHIVE]) == 2
+    assert len(client.sheets[SHEET_ARCHIVE]) == 2  # header + 1, tidak duplikat
+
+
+def test_rebuild_active_from_postgres() -> None:
+    client = FakeSheetsClient()
+    sync = _sync(client)
+    sync.rebuild_active([_promo(id="id-1"), _promo(id="id-2")])
+    sync.flush()
+    assert sync.active_count == 2
+    assert len(client.sheets[SHEET_ACTIVE]) == 3
 
 
 def test_retry_backoff_then_success_on_429() -> None:

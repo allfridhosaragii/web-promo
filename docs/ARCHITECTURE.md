@@ -116,7 +116,12 @@ Alasan Python: ekosistem scraping, OCR, dan NLP paling matang.
 #### 3.5.1 Hosting produksi — Oracle Cloud Always Free
 
 - **VM: Ampere A1 Flex (`VM.Standard.A1.Flex`), ARM64.** Satu VM menjalankan **seluruh** Docker Compose: Postgres+PostGIS+pgvector, Meilisearch, Redis/Valkey, API, web, worker ingest, Umami.
-- **⚠️ KOREKSI PENTING — angka 4 OCPU / 24 GB tidak lagi dijamin gratis.** Dokumen resmi Oracle per Oktober–November 2026: jatah Always Free **tenancy biasa (bukan PAYG) = 1.500 OCPU-hours + 9.000 GB-hours/bulan, setara 2 OCPU + 12 GB RAM berjalan terus-menerus**. Jatah 4 OCPU / 24 GB (3.000 OCPU-hours + 18.000 GB-hours/bulan) hanya berlaku untuk **tenancy Pay As You Go (PAYG)** — akun yang sudah didaftarkan kartu dan di-upgrade ke PAYG, tapi tetap Rp0 selama tidak memakai sumber daya di luar jatah Always Free. Oracle memangkas jatah ini pada 15 Juni 2026 tanpa pengumuman publik.
+- **Jatah Always Free — sumber resmi (diverifikasi 2026-11-22 03:08 UTC):**
+  [Oracle Docs — Always Free Resources](https://docs.oracle.com/iaas/Content/FreeTier/resourceref.htm).
+  Kutipan persis: *"All tenancies get the first 1,500 OCPU hours and 9,000 GB hours per month for free for VM instances using the VM.Standard.A1.Flex shape... For Always Free tenancies, this is equivalent to 2 OCPUs and 12 GB of memory."* +
+  *"you can create one or two OCI Ampere A1 Compute instances, 2 OCPUs total."*
+  Jadi untuk **Always Free tenancy: 2 OCPU / 12 GB berjalan terus-menerus**.
+  - **Catatan jujur:** halaman resmi di atas **TIDAK menyebut tanggal 15 Juni 2026** dan **TIDAK menyebut angka 4 OCPU / 24 GB** untuk Always Free tenancy. Angka 4 OCPU / 24 GB untuk PAYG dan tanggal 15 Juni 2026 berasal dari **laporan sekunder** (panduan/komunitas), bukan dokumen resmi ini — dicatat di sini sebagai laporan sekunder, bukan fakta resmi. Halaman marketing Oracle yang owner lihat masih menampilkan 4/24 kemungkinan adalah **versi lama / cache** — yang otoritatif untuk Always Free tenancy adalah halaman docs di atas.
   - **Keputusan desain: rancang untuk 2 OCPU / 12 GB.** Semua image harus jalan nyaman di 2 OCPU / 12 GB. Kalau owner memakai akun PAYG dan dapat 4 OCPU / 24 GB, itu bonus — bukan asumsi. **Jangan pernah** membuat sumber daya di luar jatah Always Free (VM tambahan, volume di atas 200 GB, Object Storage di atas 20 GB, egress di atas 10 TB/bulan).
   - **Risiko nyata yang harus diakui:** kapasitas A1 sering habis ("Out of host capacity") di region populer — butuh percobaan berulang / pilih region yang longgar. Oracle bisa **reclaim instance yang idle 7 hari** (CPU, network, dan memory sangat rendah) — mitigasi: cron health-check + traffic minimal berkala, jangan biarkan VM benar-benar idle. Semua resource Always Free hanya di **home region** (dipilih saat signup, tidak bisa diubah).
 - **Semua image Docker wajib mendukung `linux/arm64`.** Cek di Fase 0: `postgres:16` + PostGIS, Meilisearch, Redis/Valkey, Node, Python — semua punya build arm64 resmi. Jangan pakai image yang hanya `amd64`. CI harus menjalankan `docker buildx build --platform linux/arm64` minimal untuk smoke test.
@@ -129,7 +134,8 @@ Alasan Python: ekosistem scraping, OCR, dan NLP paling matang.
   - 2× Autonomous Database (1 OCPU, 20 GB) — **tidak dipakai** (BuruPromo pakai Postgres di Docker).
   - Kalau ada pemakaian di atas jatah → **jangan upgrade otomatis**. Job berhenti + alert admin. Owner yang memutuskan manual.
 - **JANGAN pakai Vercel Hobby** (non-komersial, tidak cocok untuk produk ini). Web jalan di VM yang sama lewat Caddy, bukan di Vercel/Cloudflare Pages.
-- **Lokal vs produksi:** Docker Compose yang sama dipakai lokal dan di Oracle VM — bedanya hanya `.env` (host, domain, secret). Tidak ada Compose terpisah yang drift.
+- **Lokal vs produksi:** Docker Compose yang sama dipakai lokal dan di Oracle VM — bedanya hanya `.env` (host, domain, secret) + override `infra/docker-compose.prod.yml` di produksi. Tidak ada Compose terpisah yang drift.
+- **Firewall produksi (D8):** security list / NSG VM HANYA membuka **22 (SSH, batasi IP owner), 80, 443**. JANGAN buka 5432/6379/7700/3000/3001/3002 ke publik. Override prod (`docker-compose.prod.yml`) menghapus publish port semua service internal — hanya Caddy 80/443 yang terbuka. Detail: `infra/README.md`.
 
 #### 3.5.2 Backup — gratis
 
@@ -147,7 +153,7 @@ Alasan Python: ekosistem scraping, OCR, dan NLP paling matang.
 
 | Komponen | Layanan | Biaya | Batas free tier | Kalau batas tercapai |
 |---|---|---|---|---|
-| LLM ekstraksi | Gemini 2.5 Flash-Lite, Google AI Studio, **tanpa billing account** | **Rp0** | Lihat §11.1 — bervariasi per proyek, tidak dijamin Google; bacaan 21 Okt 2026: 10 RPM / 250rb TPM / 20 RPD untuk 2.5 Flash-Lite | Job berhenti (429), sisa antre, proses ulang setelah reset tengah malam PT — **tidak ada tagihan** |
+| LLM ekstraksi | Gemini free tier (model dipilih owner dari AI Studio), Google AI Studio, **tanpa billing account** | **Rp0** | Lihat §11.1 — bervariasi per proyek, tidak dijamin Google; fallback terburuk 10 RPM / 250rb TPM / 20 RPD | Job berhenti (429), sisa antre, proses ulang setelah reset tengah malam PT — **tidak ada tagihan** |
 | Hosting + DB + search + cache | Oracle Always Free, VM A1 ARM | **Rp0** | 2 OCPU / 12 GB terus-menerus (tenancy biasa); 200 GB block; 20 GB Object Storage; 10 TB egress/bulan | Instance bisa direclaim kalau idle 7 hari; pemakaian di atas jatah **dilarang dibuat** — alert, bukan upgrade |
 | HTTPS | Caddy + Let's Encrypt | **Rp0** | Sertifikat gratis, auto-renew | Caddy gagal renew → HTTPS mati, alert admin, perbaiki manual |
 | Penyimpanan file | Volume lokal VM / Oracle Object Storage free | **Rp0** | 200 GB block / 20 GB Object Storage + 50rb req/bulan | Hapus thumbnail lama (>90 hari setelah kedaluwarsa), jangan tambah storage berbayar |
@@ -185,10 +191,12 @@ Seed dari dataset kode wilayah resmi, **jangan hardcode manual**. Tabel tambahan
 - `channel: online | offline | keduanya`, `platform`
 - `category_ids[]`, `brand_id`
 - `region_scope: nasional | provinsi | kota | outlet_tertentu` + `region_codes[]`
-- `starts_at, ends_at, recurring_rule` (mis. "setiap Jumat"), `quota_note`
+- `starts_at, ends_at, recurring_rule` (RRULE valid, mis. `FREQ=WEEKLY;BYDAY=FR,SA,SU`), `quota_note`
 - `source_id, source_url, evidence_image_url`
-- `confidence (0-1)`, `status: aktif | segera_berakhir | kedaluwarsa | belum_terverifikasi | dilaporkan | ditolak`
-- `last_checked_at, votes_valid, votes_invalid, views, saves`
+- `confidence (0-1)`
+- `lifecycle: dijadwalkan | aktif | segera_berakhir | kedaluwarsa` — dihitung dari tanggal (pipeline/expire.py), BUKAN status moderasi.
+- `moderation: belum_ditinjau | terverifikasi | dilaporkan | ditolak` — diputuskan manusia/komunitas, BUKAN dari tanggal. Dua kolom terpisah (perbaikan A4) — kolom tunggal `status` lama dihapus.
+- `last_checked_at, last_confirmed_at` (`last_confirmed_at` untuk promo tanpa `ends_at` — auto-kedaluwarsa bila tak terkonfirmasi 14 hari, lihat §5.3), `votes_valid, votes_invalid, views, saves`
 - `embedding (pgvector), dedup_key, is_seed`
 
 **categories** — taksonomi berjenjang, disimpan di DB (bisa diubah admin), bukan hardcode di UI. Lihat §6.
@@ -228,7 +236,7 @@ Job pendukung:
 - **Recheck job**: promo aktif dicek ulang ke sumber dengan frekuensi sesuai jenis sumber; kalau halaman hilang/berubah → turunkan confidence.
 - **Source health**: catat sukses/gagal, waktu respons, jumlah promo baru; alert ke admin kalau konektor gagal beruntun.
 - **Quota guard (menggantikan budget guard):** tidak ada konektor berbayar. LLM (Gemini free tier) dan Sheets API berhenti otomatis saat kena 429 / kuota harian. LLM: lihat §11.1. Sheets: lihat §17. X: $0, disabled sampai Fase 2.
-- **Web revalidate:** setiap promo baru/berubah/kedaluwarsa memicu `revalidatePath` / `revalidateTag` Next.js untuk halaman terkait (`/`, `/promo/...`, detail promo) — web update otomatis tanpa refresh manual. Lihat §17.4.
+- **Web revalidate:** setiap promo baru/berubah/kedaluwarsa memicu revalidate halaman terkait (`/`, `/promo/...`, detail promo) **lewat route handler Next.js `POST /api/revalidate`** (secret header) — Hono tidak bisa memanggil `revalidatePath` langsung. Web update otomatis tanpa refresh manual. Lihat §17.4.
 
 ### 5.1 Interface konektor standar (WAJIB — Python Protocol / ABC)
 
@@ -339,8 +347,11 @@ File settings: `infra/meilisearch/settings.json` — di-apply di Fase 0, di-vers
     "region_scope",
     "region_codes",
     "cluster",
-    "status",
+    "lifecycle",
+    "moderation",
     "is_seed",
+    "ends_at_ts",
+    "starts_at_ts",
     "ends_at",
     "starts_at",
     "value_percent",
@@ -351,6 +362,8 @@ File settings: `infra/meilisearch/settings.json` — di-apply di Fase 0, di-vers
     "is_student_only"
   ],
   "sortableAttributes": [
+    "ends_at_ts",
+    "starts_at_ts",
     "ends_at",
     "starts_at",
     "created_at",
@@ -373,15 +386,31 @@ File settings: `infra/meilisearch/settings.json` — di-apply di Fase 0, di-vers
   "pagination": { "maxTotalHits": 1000 },
   "synonyms": {
     "gratis ongkir": ["free ongkir", "ongkir 0", "bebas ongkir", "freeongkir"],
+    "free ongkir": ["gratis ongkir", "ongkir 0", "bebas ongkir", "freeongkir"],
+    "ongkir 0": ["gratis ongkir", "free ongkir", "bebas ongkir", "freeongkir"],
+    "bebas ongkir": ["gratis ongkir", "free ongkir", "ongkir 0", "freeongkir"],
+    "freeongkir": ["gratis ongkir", "free ongkir", "ongkir 0", "bebas ongkir"],
     "cashback": ["kembalian", "cash back"],
+    "kembalian": ["cashback", "cash back"],
+    "cash back": ["cashback", "kembalian"],
     "sby": ["surabaya"],
+    "surabaya": ["sby"],
     "bca": ["bank central asia"],
+    "bank central asia": ["bca"],
     "indomaret": ["indomart"],
-    "alfamart": ["alfamart"],
+    "indomart": ["indomaret"],
     "kopi": ["coffee", "ngopi"],
+    "coffee": ["kopi", "ngopi"],
+    "ngopi": ["kopi", "coffee"],
     "diskon": ["discount", "disc"],
+    "discount": ["diskon", "disc"],
+    "disc": ["diskon", "discount"],
     "voucher": ["kupon", "coupon"],
-    "jajan": ["snack", "camilan"]
+    "kupon": ["voucher", "coupon"],
+    "coupon": ["voucher", "kupon"],
+    "jajan": ["snack", "camilan"],
+    "snack": ["jajan", "camilan"],
+    "camilan": ["jajan", "snack"]
   },
   "stopWords": ["yang", "dan", "di", "ke", "dari", "untuk", "dengan"]
 }
@@ -389,28 +418,37 @@ File settings: `infra/meilisearch/settings.json` — di-apply di Fase 0, di-vers
 
 Catatan:
 - `searchableAttributes` sengaja **tidak** memasukkan `how_to_claim` dan `requirements[]` mentah yang panjang — yang dicari adalah judul/ringkasan/brand/kode.
-- `status` hanya `aktif` dan `segera_berakhir` yang masuk index utama. `kedaluwarsa`, `ditolak`, `dilaporkan` dikeluarkan dari index utama (tetap di Postgres untuk arsip).
+- **Waktu: `starts_at` / `ends_at` (ISO string) hanya untuk tampilan.** Filter & sort memakai `starts_at_ts` / `ends_at_ts` (Unix detik, integer) — Meilisearch tidak bisa filter/sort ISO string dengan benar.
+- **Dua kolom status (A4):** `lifecycle` (dijadwalkan|aktif|segera_berakhir|kedaluwarsa) dan `moderation` (belum_ditinjau|terverifikasi|dilaporkan|ditolak). Kolom tunggal `status` lama DIHAPUS.
+- **Index utama hanya:** `lifecycle` IN (`aktif`, `segera_berakhir`) AND `moderation` != `ditolak` (lihat `pipeline/index.py` `should_index`). `kedaluwarsa` / `dijadwalkan` / `ditolak` dikeluarkan dari index utama (tetap di Postgres untuk arsip). `dilaporkan` tetap tampil sampai moderator memutuskan.
 - `is_seed=true` **tidak pernah** di-index ke index produksi. Index dev terpisah: `promos_dev`.
-- Sinonim di atas adalah daftar awal. Admin bisa edit di `/admin` → disimpan di `infra/meilisearch/settings.json` + di-apply ulang. Daftar lengkap sinonim awal ada di `packages/db/seed/synonyms.json` (Fase 0).
-- Sort default di UI: relevansi. Sort lain: terbaru (`starts_at:desc`), segera berakhir (`ends_at:asc`), diskon terbesar (`value_percent:desc` lalu `value_amount:desc`), paling dipercaya (`confidence:desc` lalu `votes_valid:desc`).
+- Sinonim di atas adalah daftar awal, **ditulis dua arah** (setiap pasangan ada di kedua sisi, mis. `sby ↔ surabaya`, `bca ↔ bank central asia`). Sinonim ke dirinya sendiri (dulu `alfamart: ["alfamart"]`) dihapus — tidak berguna. Admin bisa edit di `/admin` → disimpan di `infra/meilisearch/settings.json` + di-apply ulang. Daftar lengkap sinonim awal ada di `packages/db/seed/synonyms.json` (Fase 0) — isinya harus sama dengan blok di atas.
+- Sort default di UI: relevansi. Sort lain: terbaru (`starts_at_ts:desc`), segera berakhir (`ends_at_ts:asc`), diskon terbesar (`value_percent:desc` lalu `value_amount:desc`), paling dipercaya (`confidence:desc` lalu `votes_valid:desc`).
 
 Dokumen Meilisearch per promo (ringkas, bukan seluruh kolom Postgres):
-`id, title, summary, brand_name, brand_slug, platform, promo_type, value_percent, value_amount, max_discount, min_purchase, voucher_code, has_voucher_code, category_ids, category_slugs, category_names, region_scope, region_codes, cluster, channel, payment_methods, requirements, is_student_only, starts_at, ends_at, status, confidence, votes_valid, saves, views, source_url, created_at`
+`id, title, summary, brand_name, brand_slug, platform, promo_type, value_percent, value_amount, max_discount, min_purchase, voucher_code, has_voucher_code, category_ids, category_slugs, category_names, region_scope, region_codes, cluster, channel, payment_methods, requirements, is_student_only, starts_at, ends_at, starts_at_ts, ends_at_ts, lifecycle, moderation, confidence, votes_valid, saves, views, source_url, created_at, is_seed`
 
 ### 5.3 Definisi expire & recurring — WAJIB sama di semua tempat
 
 - **`segera_berakhir` = `ends_at` < 24 jam dari sekarang (WIB).**
-  Status dihitung, bukan disimpan manual:
+  Lifecycle dihitung, bukan disimpan manual (`pipeline/expire.py` `compute_lifecycle`):
   - `now_wib >= ends_at` → `kedaluwarsa`
   - `ends_at - now_wib < 24 jam` dan `ends_at > now_wib` → `segera_berakhir`
   - selain itu dan `starts_at <= now_wib` → `aktif`
-  - `starts_at > now_wib` → `belum_terverifikasi` / dijadwalkan (tidak tampil di hasil utama sampai mulai, kecuali di kalender promo Fase 3)
-  - Expire job tiap 10 menit menghitung ulang status + menghapus `kedaluwarsa` dari index Meilisearch utama.
-- **Promo berulang (`recurring_rule`):**
-  - Format disimpan sebagai string terstruktur, contoh: `FREQ=WEEKLY;BYDAY=FR,SAT,SUN` (JSM Alfamart/Indomaret), `FREQ=WEEKLY;BYDAY=FRI`, `FREQ=MONTHLY;BYDAY=25` (payday tanggal 25), atau `FREQ=DAILY`.
+  - `starts_at > now_wib` → `dijadwalkan` (tidak tampil di hasil utama sampai mulai, kecuali di kalender promo Fase 3)
+  - Expire job tiap 10 menit menghitung ulang lifecycle + menghapus `kedaluwarsa` dari index Meilisearch utama.
+  - `moderation` TIDAK dihitung dari tanggal — diputuskan manusia/komunitas (lihat §4).
+- **Promo tanpa `ends_at` — "Tanpa batas waktu" (A5):**
+  - `ends_at = NULL` → label di web/kontrak: **"Tanpa batas waktu"** (`is_open_ended = true`).
+  - Wajib recheck **lebih sering**: tiap 6 jam (promo dengan `ends_at` cukup tiap 24 jam, kecuali segera berakhir: tiap 1 jam). Lihat `pipeline/expire.py` `recheck_due`.
+  - **Auto-kedaluwarsa:** bila `last_confirmed_at` lebih dari **14 hari** (tidak terkonfirmasi di sumber selama 14 hari), lifecycle jadi `kedaluwarsa` otomatis — promo tanpa tanggal tidak boleh hidup selamanya tanpa bukti masih berlaku.
+- **Promo berulang (`recurring_rule`) — RRULE valid (RFC 5545):**
+  - Format disimpan sebagai string RRULE, contoh: `FREQ=WEEKLY;BYDAY=FR,SA,SU` (JSM Alfamart/Indomaret), `FREQ=WEEKLY;BYDAY=FR` (setiap Jumat), `FREQ=MONTHLY;BYMONTHDAY=25` (payday tanggal 25), atau `FREQ=DAILY`.
+  - Kode BYDAY yang benar: `MO TU WE TH FR SA SU`. **Bukan** `SAT/SUN/FRI` — itu bukan kode RRULE dan `dateutil.rrule` tidak mengenalinya (kemunculan berikutnya = `None` → antrean manual).
+  - Diparse dengan `dateutil.rrule` (`pipeline/expire.py` `next_recurring_ends`).
   - `ends_at` untuk promo berulang adalah **akhir periode saat ini** (mis. Minggu 23:59 WIB untuk JSM minggu itu), bukan akhir selamanya.
   - Saat expire job menemukan promo berulang yang lewat `ends_at`, job **tidak menghapus promo** — job membuat **kemunculan berikutnya**: `starts_at`/`ends_at` baru dihitung dari `recurring_rule` + `recurrence_end` (bila ada), `last_checked_at` diperbarui, dan promo tetap `aktif` untuk periode berikutnya. Kalau `recurrence_end` sudah lewat atau sumber sudah tidak menampilkan pola itu saat recheck, baru ubah ke `kedaluwarsa`.
-  - Contoh JSM: `recurring_rule = FREQ=WEEKLY;BYDAY=FRI,SAT,SUN`, `starts_at = Jumat 00:00 WIB`, `ends_at = Minggu 23:59 WIB`. Senin 00:00 WIB, expire job membuat kemunculan Jumat berikutnya.
+  - Contoh JSM: `recurring_rule = FREQ=WEEKLY;BYDAY=FR,SA,SU`, `starts_at = Jumat 00:00 WIB`, `ends_at = Minggu 23:59 WIB`. Senin 00:00 WIB, expire job membuat kemunculan Jumat berikutnya.
   - Kalau `recurring_rule` tidak bisa diparse → `confidence` turun 0,1 dan masuk antrean manual. Jangan tebak pola.
 - **TTL `raw_items` = 30 hari.**
   - `raw_items` disimpan untuk audit & re-ekstraksi, lalu dihapus otomatis setelah 30 hari (`fetched_at < now - 30 hari`).
@@ -551,7 +589,7 @@ Konsep visual: stiker harga coret di rak minimarket, struk kasir, papan pengumum
 
 | # | Keputusan | Keputusan owner (revisi 2) | Detail / guard |
 |---|---|---|---|
-| 1 | **Provider LLM untuk ekstraksi** | **Gemini API FREE TIER saja via Google AI Studio, TANPA billing account.** Model: Gemini 2.5 Flash-Lite (`gemini-2.5-flash-lite`). **Budget $5/bulan DIHAPUS.** | Lihat §11.1 (quota guard). Tidak ada fallback berbayar. Fallback bila kuota habis = ekstraksi berbasis aturan + antrean manual. |
+| 1 | **Provider LLM untuk ekstraksi** | **Gemini API FREE TIER saja via Google AI Studio, TANPA billing account.** Model TIDAK dikunci dokumen — owner memilih model free tier dengan RPD terbesar yang tampil di AI Studio proyeknya, disimpan di `.env` (`LLM_MODEL`). **Budget berbasis USD DIHAPUS.** | Lihat §11.1 (quota guard). Tidak ada fallback berbayar. Fallback bila kuota habis = ekstraksi berbasis aturan + antrean manual. |
 | 2 | **Hosting produksi** | **Oracle Cloud Always Free — VM ARM Ampere A1, seluruh Docker Compose di satu VM + Caddy untuk HTTPS otomatis.** | Lihat §3.5.1. Rancang untuk **2 OCPU / 12 GB** (tenancy biasa); 4 OCPU / 24 GB hanya bila akun PAYG. Semua image wajib `linux/arm64`. **JANGAN pakai Vercel Hobby.** |
 | 3 | **Penyimpanan file** | **Lokal di VM (volume Docker) sebagai utama; opsional Oracle Object Storage free tier.** | R2 dihapus. Batas: 200 GB block / 20 GB Object Storage + 50rb req/bulan. |
 | 4 | **Backup** | **Rclone → Google Drive, harian, gratis.** | Cron 02:00 WIB, retensi 7 harian + 4 mingguan, restore diuji sekali di Fase 0. |
@@ -567,9 +605,11 @@ Konsep visual: stiker harga coret di rak minimarket, struk kasir, papan pengumum
 
 **Batas free tier — jujur, tidak dijamin Google:**
 - Google tidak lagi memublikasikan tabel batas yang dijamin; halaman Rate Limits resmi mengarahkan ke AI Studio dan menyebut batas "tidak dijamin" dan "bervariasi per proyek". Artinya: **angka di bawah ini adalah bacaan dari satu proyek, bukan janji.**
-- Bacaan AI Studio **21 Oktober 2026** (sumber sekunder yang membaca halaman AI Studio langsung): **Gemini 2.5 Flash-Lite = 10 RPM / 250.000 TPM / 20 RPD.** Model Flash-Lite yang lebih baru (Gemini 3.5 / 3.1 Flash-Lite) pada bacaan yang sama: 15 RPM / 500 RPD. Bacaan lain yang lebih lama menyebut 15 RPM / 1.000 RPD untuk 2.5 Flash-Lite — **jangan pakai angka lama itu sebagai asumsi.** RPD 20/hari adalah skenario terburuk yang harus ditahan desain.
+- **Model dipilih owner dari AI Studio (perbaikan B) — dokumen TIDAK menentukan model.**
+  Cara memilih: buka AI Studio → Rate Limits di proyek owner sendiri, pilih model free tier dengan **RPD terbesar** yang tampil di sana (mis. Flash-Lite terbaru). Isi `.env`: `LLM_MODEL` (nama persis seperti di AI Studio), `LLM_RPM`, `LLM_DAILY_REQUEST_LIMIT`, `LLM_TPM`. Quota guard membaca semuanya dari `services/ingest/pipeline/llm_config.py` — **jangan hardcode nama model atau angka RPD di kode**. `LLM_MODEL` kosong = LLM nonaktif (aturan saja).
+- Bacaan AI Studio **21 Oktober 2026** (sumber sekunder yang membaca halaman AI Studio langsung): **Gemini 2.5 Flash-Lite = 10 RPM / 250.000 TPM / 20 RPD.** Model Flash-Lite yang lebih baru (Gemini 3.5 / 3.1 Flash-Lite) pada bacaan yang sama: 15 RPM / 500 RPD. Bacaan lain yang lebih lama menyebut 15 RPM / 1.000 RPD untuk 2.5 Flash-Lite — **jangan pakai angka lama itu sebagai asumsi.** Angka-angka ini HANYA contoh fallback terburuk (dipakai bila `.env` kosong: 10 RPM / 250rb TPM / 20 RPD), bukan janji Google dan bukan model yang dikunci.
 - **Reset: tengah malam waktu Pasifik (00:00 PT).** Kuota dihitung per proyek Google Cloud, bukan per API key — kunci kedua tidak menambah kuota.
-- **Verifikasi wajib saat implementasi:** buka AI Studio → Rate Limits di proyek owner sendiri, catat RPM / TPM / RPD yang tampil di sana ke `docs/adr/` + `/admin`, dan sesuaikan `LLM_DAILY_BUDGET` (dalam jumlah request, bukan rupiah) dengan angka itu. Jangan hardcode 1.000/hari.
+- **Verifikasi wajib saat implementasi:** buka AI Studio → Rate Limits di proyek owner sendiri, catat model + RPM / TPM / RPD yang tampil di sana ke `docs/adr/` + `/admin`, dan isi `.env` (`LLM_MODEL`, `LLM_RPM`, `LLM_DAILY_REQUEST_LIMIT`, `LLM_TPM`) dengan angka itu. Jangan hardcode 1.000/hari.
 
 **Quota guard — perilaku saat kena batas:**
 1. Kena **429** (RPM, TPM, atau RPD) → job **berhenti segera**, tidak retry membabi buta. Retry hanya dengan backoff eksponensial (2 dtk, 4 dtk, 8 dtk, maks 3x) untuk 429 sesaat (RPM). Untuk RPD habis, **tidak ada retry hari itu**.
@@ -641,7 +681,7 @@ Bukan anjuran — **syarat merge**.
 
 Urutan vertical slice BCA:
 1. `bank_bca.py` mengimplementasikan `BaseConnector` (§5.1) + fixture (`listing.html` dari sitemap `promo.bca.co.id/sitemap.xml` + 2 detail) + test hijau.
-2. Pipeline lengkap untuk BCA: fetch → normalize → classifier → extract LLM (Gemini 2.5 Flash-Lite free tier, quota guard §11.1 — aturan dulu, LLM hanya untuk yang ambigu) → normalize tanggal WIB → geotag → categorize → dedup → score → upsert Postgres → index Meilisearch → **sinkron Spreadsheet (§17)** → revalidate web.
+2. Pipeline lengkap untuk BCA: fetch → normalize → classifier → extract LLM (Gemini free tier, model dari `.env`, quota guard §11.1 — aturan dulu, LLM hanya untuk yang ambigu) → normalize tanggal WIB → geotag → categorize → dedup → score → upsert Postgres → index Meilisearch → **sinkron Spreadsheet (§17)** → revalidate web.
 3. API `GET /v1/promos` + `GET /v1/promos/:id` menampilkan promo BCA.
 4. Web menampilkan promo BCA dengan design system Label Harga & Struk Belanja (kartu + detail + tombol salin kode + hitung mundur + badge sumber).
 5. Admin bisa lihat source health BCA + kill switch.
@@ -653,7 +693,7 @@ Urutan vertical slice BCA:
 ## 14. Fase berikutnya (ringkas)
 
 - **Fase 1 — MVP Surabaya**: 5 bank (BCA, Mandiri, BRI, BNI via bniexperience, CIMB Niaga), Indomaret (via Klik Indomaret + katalog, bukan listing indomaret.co.id), AZKO, Informa, 3 e-wallet (GoPay, OVO, DANA), + komunitas & Share Target. **Alfamart & Alfamidi: `disabled` di Fase 1** (Alfamart: reCAPTCHA/bot wall; Alfamidi: tidak ada URL resmi terverifikasi — lihat SOURCES.md revisi 1). Alfagift tetap jadi alternatif untuk Alfamart. Pipeline lengkap, pencarian + filter + detail, simpan promo, admin review. Selesai jika ≥ 200 promo aktif nyata terindeks, tidak ada promo kedaluwarsa tampil sebagai aktif, Lighthouse ≥ 90. **Urutan bangun: vertical slice BCA dulu, baru GoPay → DANA → BNI → AZKO → Informa → CIMB → Mandiri → BRI → Indomaret.**
-- **Fase 2 — Media sosial via API resmi**: Instagram Business Discovery + Hashtag Search (setelah App Review), Threads keyword search, X recent search dengan budget cap, Reddit (non-komersial). Selesai jika tiap konektor punya fixture test, budget guard terbukti menghentikan job, admin bisa mematikan konektor.
+- **Fase 2 — Media sosial via API resmi**: Instagram Business Discovery + Hashtag Search (setelah App Review), Threads keyword search, X recent search dengan budget cap, Reddit (non-komersial). Selesai jika tiap konektor punya fixture test, quota guard terbukti menghentikan job saat kena 429, admin bisa mematikan konektor.
 - **Fase 3 — Personalisasi & notifikasi**: Dompetku, saved search + Web Push/Telegram, promo dekat saya + peta, kalender promo, halaman SEO.
 - **Fase 4 — Skala**: Provinsi lain, afiliasi e-commerce sebagai sumber + monetisasi, worker Go bila perlu, caching edge.
 
@@ -682,11 +722,12 @@ Base: `/v1`. Auth: Better Auth, header `Authorization: Bearer <token>` untuk end
 **`GET /v1/promos`**
 - Query: `q` (string), `category` (slug, bisa banyak, koma), `region` (kode Kemendagri, mis. `35.78` Surabaya, atau `nasional`), `cluster` (mis. `surabaya-raya`), `brand` (slug), `platform`, `promo_type`, `channel` (`online|offline|keduanya`), `payment` (mis. `bca`, `gopay`), `ends_today` (bool), `ends_soon` (bool, <24 jam), `no_min_purchase` (bool), `student_only` (bool), `sort` (`relevance|newest|ending_soon|biggest_discount|most_trusted|nearest`), `lat`, `lon`, `radius_km` (Fase 3), `page` (default 1), `per_page` (default 20, maks 50)
 - Response 200: `{ "data": [PromoSummary], "meta": { "page": 1, "per_page": 20, "total": 123, "total_pages": 7 } }`
-- `PromoSummary`: `{ "id": "uuid", "title": "string", "summary": "string", "brand": { "id": "uuid", "name": "BCA", "slug": "bca", "logo_url": "…" }, "platform": "BCA", "promo_type": "persen", "value_percent": 50, "value_amount": null, "max_discount": 150000, "min_purchase": 0, "voucher_code": "…|null", "channel": "online", "category_slugs": ["makanan-minuman"], "region_scope": "nasional", "region_codes": [], "starts_at": "2026-11-01T00:00:00Z", "ends_at": "2026-11-30T16:59:59Z", "status": "aktif|segera_berakhir", "confidence": 0.92, "votes_valid": 12, "votes_invalid": 1, "saves": 45, "source_url": "https://promo.bca.co.id/…", "evidence_image_url": "…|null" }`
+- `PromoSummary`: `{ "id": "uuid", "title": "string", "summary": "string", "brand": { "id": "uuid", "name": "BCA", "slug": "bca", "logo_url": "…" }, "platform": "BCA", "promo_type": "persen", "value_percent": 50, "value_amount": null, "max_discount": 150000, "min_purchase": 0, "voucher_code": "…|null", "channel": "online", "category_slugs": ["makanan-minuman"], "region_scope": "nasional", "region_codes": [], "starts_at": "2026-11-01T00:00:00Z", "ends_at": "2026-11-30T16:59:59Z", "is_open_ended": false, "lifecycle": "aktif", "moderation": "terverifikasi", "confidence": 0.92, "votes_valid": 12, "votes_invalid": 1, "saves": 45, "source_url": "https://promo.bca.co.id/…", "evidence_image_url": "…|null" }` — `ends_at` boleh `null` ("Tanpa batas waktu", lihat §5.3).
 
 **`GET /v1/promos/{id}`**
 - Response 200: `PromoDetail` = `PromoSummary` + `{ "how_to_claim": "…", "requirements": ["…"], "payment_methods": ["bca"], "outlets": [{ "id": "uuid", "name": "…", "address": "…", "region_code": "35.78", "lat": -7.25, "lon": 112.75 }], "source": { "id": "uuid", "name": "BCA", "type": "public_web" }, "last_checked_at": "…" }`
-- 404 kalau id tidak ada atau status `ditolak`/`kedaluwarsa` (tetap 404, bukan tampil sebagai aktif).
+- Response 200 JUGA untuk promo kedaluwarsa: `lifecycle = "kedaluwarsa"` (arsip). Web menampilkan "Promo sudah berakhir" + promo serupa + meta `noindex`.
+- 404 HANYA kalau id tidak ada ATAU `moderation = "ditolak"`.
 
 **`POST /v1/promos/{id}/vote`** — butuh login
 - Body: `{ "vote": "valid"|"invalid" }` — satu user satu vote per promo, bisa ubah vote.
@@ -762,18 +803,26 @@ Kolom: `waktu_WIB | promo_id | aksi | status | detail`
 
 Jangan simpan data pribadi di sheet mana pun selain yang sudah ada di `promos` (UU PDP — sama seperti §4.2).
 
-### 17.3 Upsert berdasarkan `id` — jangan duplikat baris
+### 17.3 "Promo Aktif" ditulis ulang penuh — JANGAN hapus baris satu-satu (perbaikan E)
 
-- **Kunci: kolom `id`.** Sebelum tulis, worker membaca kolom `id` di sheet target (cache di Redis 5 menit, jangan baca sheet tiap promo — hemat kuota). Kalau `id` sudah ada → **update baris itu** (bukan tambah baris baru). Kalau belum ada → append baris baru.
-- **Batch update untuk hemat kuota:** jangan 1 promo = 1 request. Kumpulkan perubahan dalam jendela 30 detik (atau sampai 50 baris), lalu kirim **satu** `spreadsheets.values.batchUpdate` per sheet. Satu batch = 1 write request, bukan 50.
-- **Pindah ke Arsip:** saat promo kedaluwarsa, worker (1) hapus baris dari "Promo Aktif" (via `batchUpdate` dengan range yang sudah diketahui dari cache `id → row`), (2) append ke "Arsip". Dua langkah ini dalam satu batch bila memungkinkan; kalau langkah (1) gagal, jangan lakukan (2) dua kali — cek `id` di "Arsip" dulu sebelum append.
-- **Idempotensi:** menjalankan sinkron yang sama dua kali tidak boleh membuat baris ganda. Selalu cek `id` dulu.
+- **JANGAN hapus baris satu-satu.** Nomor baris bergeser setelah satu baris dihapus, jadi cache `id → nomor baris` jadi basi dan sinkron berikutnya menulis ke baris yang salah → duplikat / baris basi. Itu bug yang sudah diperbaiki.
+- **"Promo Aktif" ditulis ulang PENUH tiap sinkron:** worker menyimpan registry promo aktif in-memory (`id → promo`), lalu menulis ulang SELURUH sheet (header + semua baris aktif) dalam **SATU** `spreadsheets.values.batchUpdate` — range mencakup baris lama juga, ekor lama yang lebih panjang ditindih baris kosong supaya tidak ada baris basi tertinggal. (Sheets API tidak punya satu call clear+write; ini satu batchUpdate, bukan hapus per baris.)
+- **Debounce + batch:** perubahan dikumpulkan dalam jendela 30 detik (atau sampai 50 baris) sebelum rewrite. Satu rewrite = 1 write request, bukan 1 request per promo.
+- **Restart worker:** registry dibangun ulang dari Postgres (`rebuild_active`) saat worker start — tanpa ini, restart akan menulis ulang sheet Aktif menjadi kosong.
+- **Pindah ke Arsip:** saat promo kedaluwarsa, worker menghapusnya dari registry (jadi hilang dari "Promo Aktif" pada rewrite berikutnya) dan **append** ke "Arsip" — dengan cek `id` di "Arsip" dulu (cache 5 menit) supaya tidak duplikat.
+- **"Arsip" & "Log Sinkron" tetap append** (bukan rewrite) — dengan cek `id` dulu untuk "Arsip", idempotent.
+- **Idempotensi:** menjalankan sinkron yang sama dua kali tidak boleh membuat baris ganda — rewrite penuh idempotent secara alami (isi akhir = registry), append Arsip dicek `id` dulu.
 
-### 17.4 Web update otomatis
+### 17.4 Web update otomatis — via route handler, bukan revalidatePath langsung (perbaikan F)
 
-Saat promo baru masuk / berubah / kedaluwarsa, setelah langkah Sheets (atau bersamaan, jangan tunggu Sheets bila Sheets antre):
-- API memanggil `revalidatePath("/")`, `revalidatePath("/promo/...")`, `revalidatePath("/promo/[id]")` dan `revalidateTag("promos")` di Next.js — halaman terkait di-render ulang di server, pengguna tidak perlu refresh manual.
-- Kalau Sheets sedang antre/retry, **revalidate tetap jalan** — web tidak boleh menunggu Spreadsheet.
+Hono (API) **tidak bisa** memanggil `revalidatePath` Next.js langsung — itu API server Next.js, bukan HTTP. Jadi alurnya lewat HTTP:
+- Web menyediakan route handler **`POST /api/revalidate`** (`apps/web/src/app/api/revalidate/route.ts`).
+  Header: `x-revalidate-secret: <REVALIDATE_SECRET dari .env>`.
+  Body: `{ "paths": ["/", "/promo/<id>"], "tags": ["promos"] }` (opsional — default `/` + tag `promos`).
+  Handler memanggil `revalidatePath` / `revalidateTag` dari `next/cache`.
+- Worker ingest / API memanggil endpoint itu via HTTP (`services/ingest/pipeline/revalidate.py` `trigger_revalidate`) setelah promo dibuat/diubah/kedaluwarsa — setelah langkah Sheets (atau bersamaan, jangan tunggu Sheets bila Sheets antre).
+- Secret salah / `REVALIDATE_SECRET` belum dikonfigurasi → **401** (fail closed, tidak ada revalidate). Logika secret ada di `apps/web/src/lib/revalidate.ts` (pure, di-test: secret salah → 401).
+- Kalau Sheets sedang antre/retry, **revalidate tetap jalan** — web tidak boleh menunggu Spreadsheet. Gagal revalidate (web mati, secret salah) tidak menggagalkan pipeline — web tetap update saat ISR berikutnya.
 
 ### 17.5 Kuota, retry, dan kalau batas tercapai
 

@@ -1,5 +1,6 @@
 import { PromoListQuery } from "@burupromo/contracts";
 import { Hono } from "hono";
+import { resolvePromoDetail } from "../lib/promo-detail";
 // Fase 0: stub yang jujur — belum ada promo terindeks, kembalikan list kosong.
 // Vertical slice BCA akan mengisi ini dari Postgres + Meilisearch.
 export const promos = new Hono();
@@ -20,12 +21,19 @@ promos.get("/", (c) => {
     },
   });
 });
-promos.get("/:id", (c) =>
-  c.json(
-    { error: { code: "NOT_FOUND", message: "Promo tidak ditemukan." } },
-    404,
-  ),
-);
+promos.get("/:id", (c) => {
+  // Fase 0: belum ada DB — lookup selalu null -> 404. Aturan lengkap ada di
+  // lib/promo-detail.ts (resolvePromoDetail): kedaluwarsa -> 200 + arsip,
+  // 404 hanya untuk id tidak ada / moderation=ditolak (A6). Vertical slice
+  // BCA mengganti `null` di bawah dengan hasil query Postgres.
+  const lookup = resolvePromoDetail(null);
+  if (lookup.status === 404)
+    return c.json(
+      { error: { code: "NOT_FOUND", message: "Promo tidak ditemukan." } },
+      404,
+    );
+  return c.json(lookup.promo);
+});
 promos.post("/:id/vote", (c) =>
   c.json(
     {

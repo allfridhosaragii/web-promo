@@ -11,6 +11,7 @@ dependencies = [
   "arq>=0.26.0",
   "google-generativeai>=0.8.0",
   "playwright>=1.48.0",
+  "python-dateutil>=2.9.0",  # RRULE valid untuk recurring_rule (ARCH §5.3)
   # Sinkron Spreadsheet (ARCH §17, revisi 2) — service account, tanpa billing.
   "google-api-python-client>=2.150.0",
   "google-auth>=2.35.0",

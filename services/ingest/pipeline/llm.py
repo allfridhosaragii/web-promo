@@ -1,21 +1,23 @@
 """Interface LLM ekstraksi — Gemini 2.5 Flash-Lite FREE TIER via Google AI Studio.
 
-Revisi 2 (ARCH §11.1, ADR 0004 — menggantikan budget guard $5/bulan, ADR 0003):
+Revisi 2 + perbaikan B (ARCH §11.1, ADR 0004 — menggantikan budget guard, ADR 0003):
 - Proyek Google Cloud BuruPromo TIDAK BOLEH punya billing account. Tanpa
   billing, tidak ada jalur yang bisa menimbulkan tagihan: API yang melebihi
   free tier hanya mengembalikan 429, bukan menagih.
 - TIDAK ADA fallback berbayar. GPT-4o-mini dihapus sebagai fallback.
   Pengganti LLM harus free tier lain yang disetujui owner dulu.
-- Kuota dihitung dalam JUMLAH REQUEST, bukan rupiah:
-  LLM_DAILY_REQUESTS (default 20 = bacaan terburuk 2.5 Flash-Lite 20 RPD,
-  21 Okt 2026 — JANGAN hardcode 1000), LLM_RPM (default 10).
-  Reset tengah malam waktu Pasifik (00:00 PT).
+- Model TIDAK dikunci di kode: owner memilih model free tier dengan RPD
+  terbesar yang tampil di AI Studio proyeknya, disimpan di .env (LLM_MODEL).
+  Limit dibaca dari pipeline/llm_config.py (.env: LLM_MODEL, LLM_RPM,
+  LLM_DAILY_REQUEST_LIMIT, LLM_TPM). JANGAN hardcode nama model / RPD di sini.
+- Kuota dihitung dalam JUMLAH REQUEST, bukan rupiah. Reset tengah malam
+  waktu Pasifik (00:00 PT).
 - Kena 429 (RPD habis) -> job berhenti, sisa masuk llm_queue (Redis di
   produksi, list in-memory di sini), diproses ulang setelah reset PT.
 - Ekstraksi berbasis aturan (pipeline/rules.py) jalan DULU; LLM hanya untuk
   field yang tidak bisa diparse aturan. Hasil di-cache per content_hash.
-- Tanpa GEMINI_API_KEY, TIDAK ADA panggilan API — hasil aturan dikembalikan
-  dengan needs_review=True bila field wajib kosong.
+- Tanpa GEMINI_API_KEY atau tanpa LLM_MODEL, TIDAK ADA panggilan API — hasil
+  aturan dikembalikan dengan needs_review=True bila field wajib kosong.
 """
 
 from __future__ import annotations
@@ -27,15 +29,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from pipeline.llm_config import LLMConfig
 from pipeline.rules import extract_rules, needs_llm
 
 PT = ZoneInfo("America/Los_Angeles")
-
-# Batas free tier — bacaan terburuk, bukan janji Google (ARCH §11.1).
-# Verifikasi di AI Studio proyek owner sendiri sebelum vertical slice.
-DAILY_REQUESTS = int(os.environ.get("LLM_DAILY_REQUESTS", "20"))
-RPM_LIMIT = int(os.environ.get("LLM_RPM", "10"))
-MODEL = os.environ.get("LLM_MODEL", "gemini-2.5-flash-lite")
 
 # Nama antrean (Redis di produksi). Satu-satunya tempat nama ini didefinisikan.
 LLM_QUEUE_KEY = "llm_queue"
@@ -53,17 +50,25 @@ class RateLimitedError(RuntimeError):
 class QuotaGuard:
     """Pelacak kuota LLM free tier. Job WAJIB cek sebelum tiap panggilan.
 
-    `clock` bisa di-inject di test (fungsi -> datetime UTC sadar zona).
+    Limit dibaca dari LLMConfig (.env) bila tidak diisi eksplisit — TIDAK ADA
+    angka hardcode di sini. `clock` bisa di-inject di test.
     """
 
-    daily_limit: int = DAILY_REQUESTS
-    rpm_limit: int = RPM_LIMIT
+    daily_limit: int | None = None
+    rpm_limit: int | None = None
     requests_today: int = 0
     exhausted_today: bool = False
     clock: Callable[[], datetime] | None = None
     _day_pt: date | None = None
     _minute_calls: list[datetime] = field(default_factory=list)
     queued: list[dict] = field(default_factory=list)  # llm_queue (in-memory; Redis di prod)
+
+    def __post_init__(self) -> None:
+        config = LLMConfig.from_env()
+        if self.daily_limit is None:
+            self.daily_limit = config.daily_request_limit
+        if self.rpm_limit is None:
+            self.rpm_limit = config.rpm
 
     def _now(self) -> datetime:
         return self.clock() if self.clock else datetime.now(UTC)
@@ -143,7 +148,6 @@ class QuotaGuard:
     def status(self) -> dict:
         self._rollover()
         return {
-            "model": MODEL,
             "used_today": self.requests_today,
             "remaining_today": self.remaining_today,
             "daily_limit": self.daily_limit,
@@ -171,14 +175,19 @@ class ExtractionResult:
 class LLMExtractor:
     """Ekstraksi: aturan dulu, LLM hanya bila perlu, cache per content_hash.
 
-    Tanpa GEMINI_API_KEY -> tidak ada panggilan, hasil aturan dikembalikan.
+    Model + limit dari LLMConfig (.env) — TIDAK dikunci ke satu model.
+    Tanpa GEMINI_API_KEY atau tanpa LLM_MODEL -> tidak ada panggilan.
     Kuota habis -> hasil aturan + item masuk llm_queue.
     Panggilan LLM nyata (google-generativeai, JSON Schema) di vertical slice BCA.
     """
 
-    model: str = MODEL
+    config: LLMConfig = field(default_factory=LLMConfig.from_env)
     guard: QuotaGuard = field(default_factory=QuotaGuard)
     cache: dict[str, ExtractionResult] = field(default_factory=dict)
+
+    @property
+    def model(self) -> str:
+        return self.config.model
 
     @property
     def api_key(self) -> str | None:
@@ -199,11 +208,13 @@ class LLMExtractor:
             self.cache[key] = result
             return result
 
-        if not self.api_key:
+        if not self.api_key or not self.config.model:
+            missing = "GEMINI_API_KEY" if not self.api_key else "LLM_MODEL"
             return ExtractionResult(
                 fields=rules, source="rules", needs_review=True,
-                note="GEMINI_API_KEY belum diisi — tidak ada panggilan API. "
-                "Field yang kurang masuk antrean review manual (ARCH §11.1).",
+                note=f"{missing} belum diisi — tidak ada panggilan API. "
+                "Isi dari AI Studio proyek owner (ARCH §11.1). "
+                "Field yang kurang masuk antrean review manual.",
             )
 
         try:

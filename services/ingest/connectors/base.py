@@ -17,7 +17,10 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from urllib.robotparser import RobotFileParser
 
 
-@dataclass(frozen=True)
+# kw_only=True: field wajib `text` tidak boleh tertukar posisi dengan field
+# ber-default (bug klasik dataclass: non-default setelah default -> TypeError
+# saat definisi). Semua konstruksi RawItem WAJIB pakai keyword.
+@dataclass(frozen=True, kw_only=True)
 class RawItem:
     source_id: str  # mis. "bca"
     source_url: str  # URL kanonis, tanpa query tracking (UTM, __cf_chl_*)

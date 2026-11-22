@@ -129,8 +129,9 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
         out["voucher_code"] = vm.group(1).upper()
 
     # --- pola berulang eksplisit: JSM = Jumat–Minggu (ARCH §5.3) ---
+    # Kode BYDAY RRULE yang benar: FR,SA,SU (bukan FRI/SAT/SUN).
     if re.search(r"\bjsm\b", low) or "jumat sabtu minggu" in low:
-        out["recurring_rule"] = "FREQ=WEEKLY;BYDAY=FRI,SAT,SUN"
+        out["recurring_rule"] = "FREQ=WEEKLY;BYDAY=FR,SA,SU"
 
     return out
 

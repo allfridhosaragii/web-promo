@@ -4,6 +4,6 @@ pipeline/expire.py dan sudah dites (pipeline/tests/test_expire.py)."""
 
 from __future__ import annotations
 
-from pipeline.expire import compute_status
+from pipeline.expire import compute_lifecycle, compute_status
 
-__all__ = ["compute_status"]
+__all__ = ["compute_lifecycle", "compute_status"]

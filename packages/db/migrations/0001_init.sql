@@ -8,7 +8,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TYPE region_level AS ENUM ('provinsi', 'kab_kota', 'kecamatan');
 CREATE TYPE promo_type AS ENUM ('persen', 'potongan_nominal', 'cashback', 'beli_x_gratis_y', 'gratis_ongkir', 'harga_spesial', 'bundling', 'poin', 'cicilan_0', 'lainnya');
-CREATE TYPE promo_status AS ENUM ('aktif', 'segera_berakhir', 'kedaluwarsa', 'belum_terverifikasi', 'dilaporkan', 'ditolak');
+CREATE TYPE promo_lifecycle AS ENUM ('dijadwalkan', 'aktif', 'segera_berakhir', 'kedaluwarsa');
+CREATE TYPE promo_moderation AS ENUM ('belum_ditinjau', 'terverifikasi', 'dilaporkan', 'ditolak');
 CREATE TYPE region_scope AS ENUM ('nasional', 'provinsi', 'kota', 'outlet_tertentu');
 CREATE TYPE channel AS ENUM ('online', 'offline', 'keduanya');
 CREATE TYPE source_type AS ENUM ('official_api', 'public_web', 'affiliate_feed', 'community', 'disabled');
@@ -85,14 +86,18 @@ CREATE TABLE promos (
   region_codes JSONB NOT NULL DEFAULT '[]', starts_at TIMESTAMPTZ, ends_at TIMESTAMPTZ,
   recurring_rule VARCHAR(200), recurrence_end TIMESTAMPTZ, quota_note TEXT,
   source_id VARCHAR(100) NOT NULL, source_url TEXT NOT NULL, evidence_image_url TEXT,
-  confidence REAL NOT NULL DEFAULT 0.5, status promo_status NOT NULL DEFAULT 'belum_terverifikasi',
-  last_checked_at TIMESTAMPTZ, votes_valid INTEGER NOT NULL DEFAULT 0,
+  confidence REAL NOT NULL DEFAULT 0.5,
+  lifecycle promo_lifecycle NOT NULL DEFAULT 'dijadwalkan',
+  moderation promo_moderation NOT NULL DEFAULT 'belum_ditinjau',
+  last_checked_at TIMESTAMPTZ, last_confirmed_at TIMESTAMPTZ,
+  votes_valid INTEGER NOT NULL DEFAULT 0,
   votes_invalid INTEGER NOT NULL DEFAULT 0, views INTEGER NOT NULL DEFAULT 0,
   saves INTEGER NOT NULL DEFAULT 0, dedup_key VARCHAR(200), embedding TEXT,
   is_seed BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX promos_status_idx ON promos (status);
+CREATE INDEX promos_lifecycle_idx ON promos (lifecycle);
+CREATE INDEX promos_moderation_idx ON promos (moderation);
 CREATE INDEX promos_ends_at_idx ON promos (ends_at);
 CREATE INDEX promos_brand_idx ON promos (brand_id);
 CREATE INDEX promos_source_idx ON promos (source_id);

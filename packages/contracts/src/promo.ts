@@ -12,11 +12,17 @@ export const PromoType = z.enum([
   "cicilan_0",
   "lainnya",
 ]);
-export const PromoStatus = z.enum([
+// A4: lifecycle (dihitung dari tanggal) & moderation (diputuskan manusia)
+// adalah DUA field terpisah. Enum tunggal PromoStatus lama DIHAPUS.
+export const PromoLifecycle = z.enum([
+  "dijadwalkan",
   "aktif",
   "segera_berakhir",
   "kedaluwarsa",
-  "belum_terverifikasi",
+]);
+export const PromoModeration = z.enum([
+  "belum_ditinjau",
+  "terverifikasi",
   "dilaporkan",
   "ditolak",
 ]);
@@ -51,8 +57,12 @@ export const PromoSummary = z.object({
   region_scope: RegionScope,
   region_codes: z.array(z.string()),
   starts_at: z.string().datetime(),
-  ends_at: z.string().datetime(),
-  status: z.enum(["aktif", "segera_berakhir"]),
+  // A5: ends_at boleh null = "Tanpa batas waktu". is_open_ended = ends_at === null.
+  ends_at: z.string().datetime().nullable(),
+  is_open_ended: z.boolean(),
+  lifecycle: PromoLifecycle,
+  moderation: PromoModeration,
+  last_confirmed_at: z.string().datetime().nullable(),
   confidence: z.number().min(0).max(1),
   votes_valid: z.number().int().nonnegative(),
   votes_invalid: z.number().int().nonnegative(),

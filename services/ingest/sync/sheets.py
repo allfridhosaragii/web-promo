@@ -1,11 +1,15 @@
-"""Sinkron Google Spreadsheet — cermin otomatis (ARCH §17, revisi 2).
+"""Sinkron Google Spreadsheet — cermin otomatis (ARCH §17, revisi 2 + perbaikan E).
 
 Urutan wajib: upsert Postgres -> index Meilisearch -> sinkron Sheets ->
 revalidate web. Kalau Sheets gagal, Postgres + Meilisearch TIDAK di-rollback.
 
-Aturan keras:
-- Upsert berdasarkan kolom `id` — jangan duplikat baris. Baca kolom id
-  sekali, cache di Redis 5 menit (di sini: cache in-memory + Redis opsional).
+Aturan keras (perbaikan E):
+- Sheet "Promo Aktif" DITULIS ULANG PENUH tiap sinkron (clear + write dalam
+  SATU values.batchUpdate, debounce 30 detik). JANGAN hapus baris satu-satu —
+  nomor baris bergeser dan bikin duplikat. Worker menyimpan registry promo
+  aktif in-memory (id -> promo) dan menulis ulang seluruh isinya; saat worker
+  start, registry dibangun ulang dari Postgres (rebuild_active).
+- "Arsip" & "Log Sinkron" tetap append, dengan cek `id` dulu (idempotent).
 - Batch: kumpulkan 30 detik / 50 baris, lalu SATU batchUpdate per sheet.
 - Kena 429 -> backoff 2/4/8/16/32 dtk (maks 5x, dengan jitter kecil),
   lalu masuk sheets_queue (Redis di prod, list in-memory di sini).
@@ -62,15 +66,13 @@ class SheetsClient(Protocol):
     def get_ids(self, sheet: str) -> list[str]:
         """Kolom `id` sheet target (tanpa header)."""
 
-    def batch_update(self, sheet: str, updates: dict[int, list[str]], appends: list[list[str]]) -> None:
-        """Update baris yang sudah ada (row number 1-based, header = baris 1)
-        + append baris baru — dalam SATU request batchUpdate."""
-
-    def delete_rows(self, sheet: str, rows: list[int]) -> None:
-        """Hapus baris (row number 1-based)."""
+    def rewrite_sheet(self, sheet: str, rows: list[list[str]]) -> None:
+        """Tulis ulang SELURUH sheet (termasuk header) dalam SATU batchUpdate.
+        Baris lama yang tidak ada di `rows` harus hilang (ditindih baris kosong).
+        Dipakai untuk 'Promo Aktif' — JANGAN hapus baris satu-satu."""
 
     def append_rows(self, sheet: str, rows: list[list[str]]) -> None:
-        """Append baris ke akhir sheet."""
+        """Append baris ke akhir sheet (dipakai 'Arsip' & 'Log Sinkron')."""
 
 
 def format_wib(value: datetime | str | None) -> str:
@@ -122,21 +124,27 @@ def promo_to_row(promo: dict, archive_reason: str | None = None) -> list[str]:
 
 
 @dataclass
-class PendingItem:
+class PendingArchive:
     promo: dict
-    action: str  # "upsert" | "archive"
-    archive_reason: str | None = None
+    reason: str
 
 
 @dataclass
 class SheetsSync:
-    """Buffer + flush batch + retry backoff + antrean. Satu instance per worker."""
+    """Registry promo aktif + flush batch + retry backoff + antrean.
+
+    `revalidate_fn` (opsional): dipanggil setelah flush sukses — worker
+    mengisinya dengan pipeline.revalidate.trigger_revalidate (ARCH §17.4).
+    """
 
     spreadsheet_id: str
     client: SheetsClient
     redis_client: object | None = None  # redis.Redis bila tersedia; None = in-memory
     sleep_fn: Callable[[float], None] = time.sleep
-    _pending: list[PendingItem] = field(default_factory=list)
+    revalidate_fn: Callable[[], bool] | None = None
+    _active: dict[str, dict] = field(default_factory=dict)  # id -> promo aktif
+    _archive_pending: list[PendingArchive] = field(default_factory=list)
+    _dirty_active: bool = False
     _last_flush_at: float = field(default_factory=time.time)
     _id_cache: dict[str, dict[str, int]] = field(default_factory=dict)
     _id_cache_at: dict[str, float] = field(default_factory=dict)
@@ -145,32 +153,50 @@ class SheetsSync:
     last_error: str | None = None
 
     # -- antrean publik -------------------------------------------------
+    def rebuild_active(self, promos: list[dict]) -> None:
+        """Bangun ulang registry dari Postgres (dipanggil saat worker start).
+        Tanpa ini, restart worker akan menulis ulang sheet Aktif menjadi kosong."""
+        self._active = {str(p["id"]): p for p in promos if p.get("id")}
+        self._dirty_active = True
+
     def queue_upsert(self, promo: dict) -> None:
-        self._pending.append(PendingItem(promo=promo, action="upsert"))
+        self._active[str(promo["id"])] = promo
+        self._dirty_active = True
         self._maybe_flush()
 
     def queue_archive(self, promo: dict, reason: str) -> None:
-        self._pending.append(PendingItem(promo=promo, action="archive", archive_reason=reason))
+        self._active.pop(str(promo.get("id", "")), None)
+        self._dirty_active = True
+        self._archive_pending.append(PendingArchive(promo=promo, reason=reason))
         self._maybe_flush()
 
     @property
     def pending_count(self) -> int:
-        return len(self._pending)
+        return len(self._active) + len(self._archive_pending)
+
+    @property
+    def active_count(self) -> int:
+        return len(self._active)
 
     def _maybe_flush(self) -> None:
-        if len(self._pending) >= BATCH_MAX_ROWS:
+        if len(self._archive_pending) >= BATCH_MAX_ROWS:
             self.flush()
-        elif time.time() - self._last_flush_at >= BATCH_WINDOW_SECONDS and self._pending:
+        elif time.time() - self._last_flush_at >= BATCH_WINDOW_SECONDS and (
+            self._dirty_active or self._archive_pending
+        ):
             self.flush()
 
     def flush_if_due(self) -> None:
         """Dipanggil scheduler tiap detik / tiap loop: flush bila jendela 30 dtk lewat."""
-        if self._pending and time.time() - self._last_flush_at >= BATCH_WINDOW_SECONDS:
+        if (self._dirty_active or self._archive_pending) and (
+            time.time() - self._last_flush_at >= BATCH_WINDOW_SECONDS
+        ):
             self.flush()
 
     # -- inti ------------------------------------------------------------
     def _get_id_map(self, sheet: str) -> dict[str, int]:
-        """id -> nomor baris (1-based, header baris 1). Cache 5 menit."""
+        """id -> nomor baris (1-based, header baris 1). Cache 5 menit.
+        Dipakai HANYA untuk cek id di Arsip/Log (append), bukan untuk Aktif."""
         now = time.time()
         cached_at = self._id_cache_at.get(sheet, 0)
         if sheet in self._id_cache and now - cached_at < ID_CACHE_TTL_SECONDS:
@@ -186,9 +212,9 @@ class SheetsSync:
             return None
         return getattr(self.redis_client, cmd)(*args)
 
-    def _enqueue_failed(self, items: list[PendingItem], error: str) -> None:
+    def _enqueue_failed(self, items: list[dict], error: str) -> None:
         payloads = [
-            {"promo_id": it.promo.get("id"), "action": it.action, "error": error}
+            {"promo_id": it.get("promo_id"), "action": it.get("action"), "error": error}
             for it in items
         ]
         if self.redis_client is not None:
@@ -206,61 +232,55 @@ class SheetsSync:
             pass
 
     def flush(self) -> None:
-        """Kirim semua pending dalam batch per sheet. Idempotent: cek id dulu."""
-        if not self._pending:
+        """Tulis ulang 'Promo Aktif' penuh + append 'Arsip' yang tertunda."""
+        if not self._dirty_active and not self._archive_pending:
             return
-        items, self._pending = self._pending, []
         self._last_flush_at = time.time()
-        by_sheet: dict[str, list[PendingItem]] = {}
-        for item in items:
-            sheet = SHEET_ARCHIVE if item.action == "archive" else SHEET_ACTIVE
-            by_sheet.setdefault(sheet, []).append(item)
-        for sheet, sheet_items in by_sheet.items():
-            self._flush_sheet(sheet, sheet_items)
-
-    def _flush_sheet(self, sheet: str, items: list[PendingItem]) -> None:
         try:
-            id_map = self._get_id_map(sheet)
-            updates: dict[int, list[str]] = {}
-            appends: list[list[str]] = []
-            for item in items:
-                row = promo_to_row(item.promo, item.archive_reason if sheet == SHEET_ARCHIVE else None)
-                promo_id = str(item.promo.get("id", ""))
-                if promo_id and promo_id in id_map:
-                    updates[id_map[promo_id]] = row
-                else:
-                    appends.append(row)
-            self._call_with_retry(
-                lambda: self.client.batch_update(sheet, updates, appends)
-            )
-            # Sukses: refresh cache id (baris baru ikut terhitung).
-            self._id_cache.pop(sheet, None)
+            if self._dirty_active:
+                rows = [HEADERS_ACTIVE] + [
+                    promo_to_row(promo) for promo in self._active.values()
+                ]
+                self._call_with_retry(lambda: self.client.rewrite_sheet(SHEET_ACTIVE, rows))
+                self._id_cache.pop(SHEET_ACTIVE, None)
+                self._dirty_active = False
+                self._log("", "rewrite_aktif", "ok", f"{len(rows) - 1} promo aktif ditulis ulang")
+            if self._archive_pending:
+                self._flush_archive()
             self.last_success_at = datetime.now(UTC)
             self.last_error = None
-            for item in items:
-                action = "pindah_arsip" if sheet == SHEET_ARCHIVE else "upsert"
-                self._log(str(item.promo.get("id", "")), action, "ok", f"{sheet}: {len(updates)} update, {len(appends)} baru")
-            if sheet == SHEET_ARCHIVE:
-                # Hapus dari Promo Aktif setelah berhasil masuk Arsip.
-                active_map = self._get_id_map(SHEET_ACTIVE)
-                rows_to_delete = [
-                    active_map[str(it.promo.get("id", ""))]
-                    for it in items
-                    if str(it.promo.get("id", "")) in active_map
-                ]
-                if rows_to_delete:
-                    self._call_with_retry(
-                        lambda: self.client.delete_rows(SHEET_ACTIVE, rows_to_delete)
-                    )
-                    self._id_cache.pop(SHEET_ACTIVE, None)
+            if self.revalidate_fn is not None:
+                try:
+                    self.revalidate_fn()
+                except Exception:
+                    pass  # revalidate gagal tidak menggagalkan sync (ARCH §17.4)
         except SheetsRateLimited as exc:
             self.last_error = f"429 Sheets API: {exc}"
-            self._enqueue_failed(items, str(exc))
-            for item in items:
-                self._log(str(item.promo.get("id", "")), "retry", "antre", str(exc)[:200])
+            failed = [{"promo_id": pid, "action": "upsert"} for pid in self._active]
+            failed += [
+                {"promo_id": str(a.promo.get("id", "")), "action": "archive"}
+                for a in self._archive_pending
+            ]
+            self._enqueue_failed(failed, str(exc))
+            self._log("", "retry", "antre", str(exc)[:200])
         except Exception as exc:  # noqa: BLE001 — error lain dicatat, promo tetap tampil di web
             self.last_error = str(exc)
-            self._enqueue_failed(items, str(exc))
+
+    def _flush_archive(self) -> None:
+        """Append ke 'Arsip' dengan cek id dulu (idempotent, tanpa hapus baris)."""
+        items, self._archive_pending = self._archive_pending, []
+        archive_ids = self._get_id_map(SHEET_ARCHIVE)
+        rows = []
+        for item in items:
+            promo_id = str(item.promo.get("id", ""))
+            if promo_id and promo_id in archive_ids:
+                continue  # sudah ada di Arsip — jangan duplikat
+            rows.append(promo_to_row(item.promo, item.reason))
+        if rows:
+            self._call_with_retry(lambda: self.client.append_rows(SHEET_ARCHIVE, rows))
+            self._id_cache.pop(SHEET_ARCHIVE, None)
+        for item in items:
+            self._log(str(item.promo.get("id", "")), "pindah_arsip", "ok", item.reason)
 
     def _call_with_retry(self, fn: Callable[[], None]) -> None:
         """Retry hanya untuk 429, backoff 2/4/8/16/32 dtk + jitter, maks 5x."""
@@ -280,7 +300,8 @@ class SheetsSync:
     def status(self) -> dict:
         return {
             "spreadsheet_id": self.spreadsheet_id,
-            "pending": len(self._pending),
+            "active_count": len(self._active),
+            "pending_archive": len(self._archive_pending),
             "queued_count": len(self.queued),
             "last_success_at": self.last_success_at.isoformat() if self.last_success_at else None,
             "last_error": self.last_error,
@@ -311,6 +332,15 @@ def build_sheets_client(spreadsheet_id: str, service_account_path: str | None = 
     return _GoogleSheetsClient(service, spreadsheet_id)
 
 
+def _col_letter(n: int) -> str:
+    """1 -> A, 13 -> M, 27 -> AA."""
+    result = ""
+    while n > 0:
+        n, rem = divmod(n - 1, 26)
+        result = chr(65 + rem) + result
+    return result
+
+
 class _GoogleSheetsClient:
     """Adapter tipis googleapiclient -> protokol SheetsClient."""
 
@@ -332,48 +362,29 @@ class _GoogleSheetsClient:
                 raise SheetsRateLimited(str(exc)) from exc
             raise
 
-    def batch_update(self, sheet: str, updates: dict[int, list[str]], appends: list[list[str]]) -> None:
+    def rewrite_sheet(self, sheet: str, rows: list[list[str]]) -> None:
+        """Tulis ulang penuh dalam SATU values.batchUpdate: range A1:<kolom><baris>
+        mencakup baris lama juga — ekor lama yang lebih panjang ditindih baris
+        kosong supaya tidak ada baris basi yang tertinggal. (Sheets API tidak
+        punya satu call clear+write; ini satu batchUpdate, bukan hapus per baris.)"""
         try:
-            data = [
-                {"range": f"'{sheet}'!A{row}", "values": [values]}
-                for row, values in sorted(updates.items())
-            ]
-            if data:
-                self._values().batchUpdate(
-                    spreadsheetId=self._spreadsheet_id,
-                    body={"valueInputOption": "RAW", "data": data},
-                ).execute()
-            if appends:
-                self._values().append(
-                    spreadsheetId=self._spreadsheet_id,
-                    range=f"'{sheet}'!A1",
-                    valueInputOption="RAW",
-                    body={"values": appends},
-                ).execute()
-        except Exception as exc:
-            if "429" in str(exc):
-                raise SheetsRateLimited(str(exc)) from exc
-            raise
-
-    def delete_rows(self, sheet: str, rows: list[int]) -> None:
-        # Hapus dari nomor baris terbesar dulu supaya nomor baris lain tidak bergeser.
-        try:
-            requests = [
-                {
-                    "deleteDimension": {
-                        "range": {
-                            "sheetId": self._sheet_id(sheet),
-                            "dimension": "ROWS",
-                            "startIndex": row - 1,
-                            "endIndex": row,
-                        }
-                    }
-                }
-                for row in sorted(rows, reverse=True)
-            ]
-            self._service.spreadsheets().batchUpdate(
-                spreadsheetId=self._spreadsheet_id, body={"requests": requests}
+            old = self._values().get(
+                spreadsheetId=self._spreadsheet_id, range=f"'{sheet}'!A:A"
+            ).execute().get("values", [])
+            n_cols = max((len(r) for r in rows), default=1)
+            total = max(len(rows), len(old))
+            padded = [list(r) + [""] * (n_cols - len(r)) for r in rows]
+            padded += [[""] * n_cols for _ in range(total - len(rows))]
+            last_col = _col_letter(n_cols)
+            self._values().batchUpdate(
+                spreadsheetId=self._spreadsheet_id,
+                body={
+                    "valueInputOption": "RAW",
+                    "data": [{"range": f"'{sheet}'!A1:{last_col}{total}", "values": padded}],
+                },
             ).execute()
+        except SheetsRateLimited:
+            raise
         except Exception as exc:
             if "429" in str(exc):
                 raise SheetsRateLimited(str(exc)) from exc
@@ -391,10 +402,3 @@ class _GoogleSheetsClient:
             if "429" in str(exc):
                 raise SheetsRateLimited(str(exc)) from exc
             raise
-
-    def _sheet_id(self, sheet: str) -> int:
-        meta = self._service.spreadsheets().get(spreadsheetId=self._spreadsheet_id).execute()
-        for s in meta.get("sheets", []):
-            if s["properties"]["title"] == sheet:
-                return s["properties"]["sheetId"]
-        raise RuntimeError(f"Sheet '{sheet}' tidak ditemukan di spreadsheet.")

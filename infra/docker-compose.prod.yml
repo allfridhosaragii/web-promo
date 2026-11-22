@@ -1,0 +1,34 @@
+# BuruPromo — override PRODUKSI (Oracle Cloud Always Free, revisi 2 + D8).
+# Dipakai bersama compose utama:
+#   docker compose -f infra/docker-compose.yml -f infra/docker-compose.prod.yml up -d
+# (dari root: `make up-prod`)
+#
+# Prinsip: TIDAK ADA port internal yang publish ke publik. Hanya Caddy 80/443
+# yang terbuka. Postgres/Redis/Meilisearch/API/Web/Ingest/Umami hanya bisa
+# dijangkau lewat jaringan internal Compose atau via Caddy.
+# `!reset` butuh Docker Compose >= 2.24. Tanpa override ini (lokal), port
+# internal tetap publish ke localhost untuk kemudahan dev — JANGAN pakai
+# compose utama di VM publik tanpa override ini.
+#
+# Firewall Oracle (wajib dicek manual di console, lihat infra/README.md):
+# security list / NSG VM HANYA membuka 22 (SSH, batasi IP owner), 80, 443.
+# Jangan buka 5432/6379/7700/3000/3001/3002 ke 0.0.0.0/0.
+name: burupromo
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  meilisearch:
+    ports: !reset []
+  api:
+    ports: !reset []
+  web:
+    ports: !reset []
+  umami:
+    ports: !reset []
+  caddy:
+    environment:
+      # Produksi WAJIB punya domain (satu-satunya biaya, owner beli sendiri).
+      # Compose gagal dengan pesan jelas bila DOMAIN kosong.
+      DOMAIN: ${DOMAIN:?DOMAIN wajib diisi di produksi (lihat .env.example)}

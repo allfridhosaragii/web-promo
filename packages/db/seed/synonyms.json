@@ -1,11 +1,1 @@
-{
-  "gratis ongkir": ["free ongkir", "ongkir 0", "bebas ongkir", "freeongkir"],
-  "cashback": ["kembalian", "cash back"],
-  "sby": ["surabaya"],
-  "bca": ["bank central asia"],
-  "indomaret": ["indomart"],
-  "kopi": ["coffee", "ngopi"],
-  "diskon": ["discount", "disc"],
-  "voucher": ["kupon", "coupon"],
-  "jajan": ["snack", "camilan"]
-}
+{"bank central asia":["bca"],"bca":["bank central asia"],"bebas ongkir":["gratis ongkir","free ongkir","ongkir 0","freeongkir"],"camilan":["jajan","snack"],"cash back":["cashback","kembalian"],"cashback":["kembalian","cash back"],"coffee":["kopi","ngopi"],"coupon":["voucher","kupon"],"disc":["diskon","discount"],"discount":["diskon","disc"],"diskon":["discount","disc"],"free ongkir":["gratis ongkir","ongkir 0","bebas ongkir","freeongkir"],"freeongkir":["gratis ongkir","free ongkir","ongkir 0","bebas ongkir"],"gratis ongkir":["free ongkir","ongkir 0","bebas ongkir","freeongkir"],"indomaret":["indomart"],"indomart":["indomaret"],"jajan":["snack","camilan"],"kembalian":["cashback","cash back"],"kopi":["coffee","ngopi"],"kupon":["voucher","coupon"],"ngopi":["kopi","coffee"],"ongkir 0":["gratis ongkir","free ongkir","bebas ongkir","freeongkir"],"sby":["surabaya"],"snack":["jajan","camilan"],"surabaya":["sby"],"voucher":["kupon","coupon"]}

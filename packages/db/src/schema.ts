@@ -33,11 +33,20 @@ export const promoType = pgEnum("promo_type", [
   "cicilan_0",
   "lainnya",
 ]);
-export const promoStatus = pgEnum("promo_status", [
+// A4 (perbaikan status): lifecycle & moderation adalah DUA kolom terpisah.
+// lifecycle dihitung dari tanggal (pipeline/expire.py compute_lifecycle).
+// moderation diputuskan manusia/komunitas, bukan dari tanggal.
+// Index utama Meilisearch: lifecycle IN (aktif, segera_berakhir)
+// AND moderation != ditolak (lihat pipeline/index.py should_index).
+export const promoLifecycle = pgEnum("promo_lifecycle", [
+  "dijadwalkan",
   "aktif",
   "segera_berakhir",
   "kedaluwarsa",
-  "belum_terverifikasi",
+]);
+export const promoModeration = pgEnum("promo_moderation", [
+  "belum_ditinjau",
+  "terverifikasi",
   "dilaporkan",
   "ditolak",
 ]);
@@ -188,8 +197,14 @@ export const promos = pgTable(
     sourceUrl: text("source_url").notNull(),
     evidenceImageUrl: text("evidence_image_url"),
     confidence: real("confidence").notNull().default(0.5),
-    status: promoStatus("status").notNull().default("belum_terverifikasi"),
+    lifecycle: promoLifecycle("lifecycle").notNull().default("dijadwalkan"),
+    moderation: promoModeration("moderation")
+      .notNull()
+      .default("belum_ditinjau"),
     lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+    // A5: promo tanpa ends_at ("Tanpa batas waktu") wajib recheck tiap 6 jam;
+    // auto-kedaluwarsa bila tidak terkonfirmasi selama 14 hari.
+    lastConfirmedAt: timestamp("last_confirmed_at", { withTimezone: true }),
     votesValid: integer("votes_valid").notNull().default(0),
     votesInvalid: integer("votes_invalid").notNull().default(0),
     views: integer("views").notNull().default(0),
@@ -205,7 +220,8 @@ export const promos = pgTable(
       .notNull(),
   },
   (t) => [
-    index("promos_status_idx").on(t.status),
+    index("promos_lifecycle_idx").on(t.lifecycle),
+    index("promos_moderation_idx").on(t.moderation),
     index("promos_ends_at_idx").on(t.endsAt),
     index("promos_brand_idx").on(t.brandId),
     index("promos_source_idx").on(t.sourceId),

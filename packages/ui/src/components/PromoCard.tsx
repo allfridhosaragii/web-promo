@@ -18,8 +18,22 @@ export function PromoCard({ promo }: { promo: PromoSummary }) {
         <p className="font-display text-4xl font-bold leading-none text-[var(--bp-sticker)]">
           {big}
         </p>
-        <Badge tone={promo.status === "segera_berakhir" ? "sticker" : "valid"}>
-          {promo.status === "segera_berakhir" ? "Segera berakhir" : "Aktif"}
+        <Badge
+          tone={
+            promo.lifecycle === "segera_berakhir"
+              ? "sticker"
+              : promo.lifecycle === "kedaluwarsa"
+                ? "sticker"
+                : "valid"
+          }
+        >
+          {promo.lifecycle === "segera_berakhir"
+            ? "Segera berakhir"
+            : promo.lifecycle === "kedaluwarsa"
+              ? "Promo sudah berakhir"
+              : promo.lifecycle === "dijadwalkan"
+                ? "Dijadwalkan"
+                : "Aktif"}
         </Badge>
       </div>
       <h3 className="mt-3 font-semibold text-lg leading-snug">{promo.title}</h3>
@@ -41,6 +55,12 @@ export function PromoCard({ promo }: { promo: PromoSummary }) {
         )}
         <Countdown endsAt={promo.ends_at} />
       </div>
+      {promo.lifecycle === "kedaluwarsa" ? (
+        <p className="mt-3 border-2 border-dashed border-[var(--bp-line)] rounded-md p-3 text-sm">
+          Promo sudah berakhir — detail ini disimpan sebagai arsip. Lihat promo
+          serupa yang masih berlaku di halaman depan.
+        </p>
+      ) : null}
       <a
         href={promo.source_url}
         target="_blank"

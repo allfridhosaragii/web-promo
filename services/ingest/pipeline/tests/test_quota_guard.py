@@ -20,6 +20,7 @@ from pipeline.llm import (
     QuotaGuard,
     RateLimitedError,
 )
+from pipeline.llm_config import LLMConfig
 from pipeline.rules import extract_rules, needs_llm
 
 
@@ -107,7 +108,7 @@ def test_rules_extract_percent_code_and_end_date() -> None:
 def test_rules_extract_amount_and_jsm_recurring() -> None:
     out = extract_rules("Potongan Rp15.000, JSM di Indomaret, berlaku s.d. 22 Nov 2026.")
     assert out["value_amount"] == 15000
-    assert out["recurring_rule"] == "FREQ=WEEKLY;BYDAY=FRI,SAT,SUN"
+    assert out["recurring_rule"] == "FREQ=WEEKLY;BYDAY=FR,SA,SU"
     out2 = extract_rules("Gratis ongkir tanpa minimal belanja")
     assert out2["promo_type"] == "gratis_ongkir"
     assert needs_llm(out2) is True  # tanpa tanggal berakhir -> LLM/review masih perlu
@@ -152,11 +153,32 @@ async def test_extractor_caches_by_content_hash(monkeypatch: pytest.MonkeyPatch)
     assert second.fields == first.fields
 
 
+def test_llm_config_reads_env_no_hardcoded_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Default: model KOSONG (LLM nonaktif), limit fallback terburuk.
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    monkeypatch.delenv("LLM_DAILY_REQUEST_LIMIT", raising=False)
+    config = LLMConfig.from_env()
+    assert config.model == ""
+    assert config.daily_request_limit == 20
+    assert config.rpm == 10
+    # Owner mengisi dari AI Studio -> config mengikuti .env, bukan kode.
+    monkeypatch.setenv("LLM_MODEL", "gemini-3-flash-lite")
+    monkeypatch.setenv("LLM_DAILY_REQUEST_LIMIT", "500")
+    monkeypatch.setenv("LLM_RPM", "15")
+    monkeypatch.setenv("LLM_TPM", "500000")
+    config2 = LLMConfig.from_env()
+    assert config2.model == "gemini-3-flash-lite"
+    assert config2.daily_request_limit == 500
+    assert config2.rpm == 15
+    assert config2.tpm == 500000
+
+
 @pytest.mark.asyncio
 async def test_extractor_quota_exhausted_queues_instead_of_raising(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("GEMINI_API_KEY", "fake-key-untuk-test")
+    monkeypatch.setenv("LLM_MODEL", "gemini-2.5-flash-lite")
     guard, _ = _guard(daily_limit=1, rpm_limit=10)
     guard.record()  # kuota 1/hari habis
     ex = LLMExtractor(guard=guard)
