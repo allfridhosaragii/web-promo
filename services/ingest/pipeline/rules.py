@@ -29,14 +29,17 @@ _BULAN = {
     "jul": 7,
     "juli": 7,
     "agu": 8,
+    "aug": 8,
     "agustus": 8,
     "sep": 9,
     "september": 9,
     "okt": 10,
+    "oct": 10,
     "oktober": 10,
     "nov": 11,
     "november": 11,
     "des": 12,
+    "dec": 12,
     "desember": 12,
 }
 

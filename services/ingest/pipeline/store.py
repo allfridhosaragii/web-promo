@@ -221,6 +221,21 @@ def index_meilisearch(promos: list[dict]) -> int:
             timeout=15.0,
         )
         resp.raise_for_status()
+        task_uid = resp.json().get("taskUid")
+        if task_uid is not None:
+            import time
+
+            for _ in range(25):
+                t_resp = httpx.get(f"{host}/tasks/{task_uid}", headers=headers, timeout=10.0)
+                t_resp.raise_for_status()
+                t_data = t_resp.json()
+                status = t_data.get("status")
+                if status == "succeeded":
+                    return int(t_data.get("details", {}).get("indexedDocuments", len(docs)))
+                if status in ("failed", "canceled"):
+                    logger.warning("Meilisearch task %s gagal: %s", task_uid, t_data.get("error"))
+                    return 0
+                time.sleep(0.2)
         return len(docs)
     except httpx.HTTPError as exc:
         logger.warning("Meilisearch tidak terjangkau (%s), skip indexing", exc)
