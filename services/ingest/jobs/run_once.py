@@ -21,6 +21,7 @@ from connectors.bank_bni import BankBNIConnector
 from connectors.base import BaseConnector, RawItem
 from connectors.cimb import CimbConnector
 from connectors.gopay import GoPayConnector
+from connectors.indomaret import IndomaretConnector
 from connectors.informa import InformaConnector
 from connectors.ovo import OvoConnector
 from pipeline.categorize import categorize_promo
@@ -67,6 +68,7 @@ _CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
     "informa": (InformaConnector, "Informa", "informa"),
     "cimb": (CimbConnector, "CIMB Niaga", "cimb-niaga"),
     "ovo": (OvoConnector, "OVO", "ovo"),
+    "indomaret": (IndomaretConnector, "Indomaret", "indomaret"),
 }
 
 _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
@@ -91,6 +93,7 @@ _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
         "QRIS",
     ),
     "ovo": ("OVO", "OVO Cash", "OVO Points", "QRIS"),
+    "indomaret": ("i.saku", "Indomaret Poinku", "QRIS", "Kartu Debit", "Kartu Kredit"),
 }
 
 

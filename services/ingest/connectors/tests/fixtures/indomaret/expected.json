@@ -1,0 +1,28 @@
+{
+  "source_id": "indomaret",
+  "captured_at_wib": "2026-11-23T02:35:00+07:00",
+  "section_titles": [
+    "Super Hemat",
+    "Paling Murah",
+    "Hemat Minggu Ini",
+    "Tebus Heboh",
+    "Promosi Berhadiah",
+    "Promo 4 Hari (Kamis, Jumat, Sabtu, Minggu)",
+    "Promo Susu & Perlengkapan Balita",
+    "Harga Khusus Member",
+    "Promo Bank & E-Wallet",
+    "Pulsanya Sekalian Kakak"
+  ],
+  "detail_1": {
+    "title": "Super Hemat",
+    "promo_type": "gratis_ongkir",
+    "starts_at_wib": "2026-11-12T00:00:00+07:00",
+    "ends_at_wib": "2026-11-25T23:59:59+07:00"
+  },
+  "detail_2": {
+    "title": "Tebus Heboh",
+    "promo_type": "potongan_nominal",
+    "starts_at_wib": "2026-11-12T00:00:00+07:00",
+    "ends_at_wib": "2026-11-25T23:59:59+07:00"
+  }
+}

@@ -1,0 +1,2362 @@
+<!-- Sumber asli: https://www.indomaret.co.id/promosi/ — disimpan 2026-11-23 WIB. -->
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Promosi &#8211; Indomaret</title>
+<meta name='robots' content='max-image-preview:large' />
+	<style>img:is([sizes="auto" i], [sizes^="auto," i]) { contain-intrinsic-size: 3000px 1500px }</style>
+	<link rel='dns-prefetch' href='//cdnjs.cloudflare.com' />
+<script type="text/javascript">
+/* <![CDATA[ */
+window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/16.0.1\/72x72\/","ext":".png","svgUrl":"https:\/\/s.w.org\/images\/core\/emoji\/16.0.1\/svg\/","svgExt":".svg","source":{"wpemoji":"https:\/\/www.indomaret.co.id\/wp-includes\/js\/wp-emoji.js?ver=6.8.3","twemoji":"https:\/\/www.indomaret.co.id\/wp-includes\/js\/twemoji.js?ver=6.8.3"}};
+/**
+ * @output wp-includes/js/wp-emoji-loader.js
+ */
+
+/**
+ * Emoji Settings as exported in PHP via _print_emoji_detection_script().
+ * @typedef WPEmojiSettings
+ * @type {object}
+ * @property {?object} source
+ * @property {?string} source.concatemoji
+ * @property {?string} source.twemoji
+ * @property {?string} source.wpemoji
+ * @property {?boolean} DOMReady
+ * @property {?Function} readyCallback
+ */
+
+/**
+ * Support tests.
+ * @typedef SupportTests
+ * @type {object}
+ * @property {?boolean} flag
+ * @property {?boolean} emoji
+ */
+
+/**
+ * IIFE to detect emoji support and load Twemoji if needed.
+ *
+ * @param {Window} window
+ * @param {Document} document
+ * @param {WPEmojiSettings} settings
+ */
+( function wpEmojiLoader( window, document, settings ) {
+	if ( typeof Promise === 'undefined' ) {
+		return;
+	}
+
+	var sessionStorageKey = 'wpEmojiSettingsSupports';
+	var tests = [ 'flag', 'emoji' ];
+
+	/**
+	 * Checks whether the browser supports offloading to a Worker.
+	 *
+	 * @since 6.3.0
+	 *
+	 * @private
+	 *
+	 * @returns {boolean}
+	 */
+	function supportsWorkerOffloading() {
+		return (
+			typeof Worker !== 'undefined' &&
+			typeof OffscreenCanvas !== 'undefined' &&
+			typeof URL !== 'undefined' &&
+			URL.createObjectURL &&
+			typeof Blob !== 'undefined'
+		);
+	}
+
+	/**
+	 * @typedef SessionSupportTests
+	 * @type {object}
+	 * @property {number} timestamp
+	 * @property {SupportTests} supportTests
+	 */
+
+	/**
+	 * Get support tests from session.
+	 *
+	 * @since 6.3.0
+	 *
+	 * @private
+	 *
+	 * @returns {?SupportTests} Support tests, or null if not set or older than 1 week.
+	 */
+	function getSessionSupportTests() {
+		try {
+			/** @type {SessionSupportTests} */
+			var item = JSON.parse(
+				sessionStorage.getItem( sessionStorageKey )
+			);
+			if (
+				typeof item === 'object' &&
+				typeof item.timestamp === 'number' &&
+				new Date().valueOf() < item.timestamp + 604800 && // Note: Number is a week in seconds.
+				typeof item.supportTests === 'object'
+			) {
+				return item.supportTests;
+			}
+		} catch ( e ) {}
+		return null;
+	}
+
+	/**
+	 * Persist the supports in session storage.
+	 *
+	 * @since 6.3.0
+	 *
+	 * @private
+	 *
+	 * @param {SupportTests} supportTests Support tests.
+	 */
+	function setSessionSupportTests( supportTests ) {
+		try {
+			/** @type {SessionSupportTests} */
+			var item = {
+				supportTests: supportTests,
+				timestamp: new Date().valueOf()
+			};
+
+			sessionStorage.setItem(
+				sessionStorageKey,
+				JSON.stringify( item )
+			);
+		} catch ( e ) {}
+	}
+
+	/**
+	 * Checks if two sets of Emoji characters render the same visually.
+	 *
+	 * This is used to determine if the browser is rendering an emoji with multiple data points
+	 * correctly. set1 is the emoji in the correct form, using a zero-width joiner. set2 is the emoji
+	 * in the incorrect form, using a zero-width space. If the two sets render the same, then the browser
+	 * does not support the emoji correctly.
+	 *
+	 * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+	 * scope. Everything must be passed by parameters.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @private
+	 *
+	 * @param {CanvasRenderingContext2D} context 2D Context.
+	 * @param {string} set1 Set of Emoji to test.
+	 * @param {string} set2 Set of Emoji to test.
+	 *
+	 * @return {boolean} True if the two sets render the same.
+	 */
+	function emojiSetsRenderIdentically( context, set1, set2 ) {
+		// Cleanup from previous test.
+		context.clearRect( 0, 0, context.canvas.width, context.canvas.height );
+		context.fillText( set1, 0, 0 );
+		var rendered1 = new Uint32Array(
+			context.getImageData(
+				0,
+				0,
+				context.canvas.width,
+				context.canvas.height
+			).data
+		);
+
+		// Cleanup from previous test.
+		context.clearRect( 0, 0, context.canvas.width, context.canvas.height );
+		context.fillText( set2, 0, 0 );
+		var rendered2 = new Uint32Array(
+			context.getImageData(
+				0,
+				0,
+				context.canvas.width,
+				context.canvas.height
+			).data
+		);
+
+		return rendered1.every( function ( rendered2Data, index ) {
+			return rendered2Data === rendered2[ index ];
+		} );
+	}
+
+	/**
+	 * Checks if the center point of a single emoji is empty.
+	 *
+	 * This is used to determine if the browser is rendering an emoji with a single data point
+	 * correctly. The center point of an incorrectly rendered emoji will be empty. A correctly
+	 * rendered emoji will have a non-zero value at the center point.
+	 *
+	 * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+	 * scope. Everything must be passed by parameters.
+	 *
+	 * @since 6.8.2
+	 *
+	 * @private
+	 *
+	 * @param {CanvasRenderingContext2D} context 2D Context.
+	 * @param {string} emoji Emoji to test.
+	 *
+	 * @return {boolean} True if the center point is empty.
+	 */
+	function emojiRendersEmptyCenterPoint( context, emoji ) {
+		// Cleanup from previous test.
+		context.clearRect( 0, 0, context.canvas.width, context.canvas.height );
+		context.fillText( emoji, 0, 0 );
+
+		// Test if the center point (16, 16) is empty (0,0,0,0).
+		var centerPoint = context.getImageData(16, 16, 1, 1);
+		for ( var i = 0; i < centerPoint.data.length; i++ ) {
+			if ( centerPoint.data[ i ] !== 0 ) {
+				// Stop checking the moment it's known not to be empty.
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Determines if the browser properly renders Emoji that Twemoji can supplement.
+	 *
+	 * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+	 * scope. Everything must be passed by parameters.
+	 *
+	 * @since 4.2.0
+	 *
+	 * @private
+	 *
+	 * @param {CanvasRenderingContext2D} context 2D Context.
+	 * @param {string} type Whether to test for support of "flag" or "emoji".
+	 * @param {Function} emojiSetsRenderIdentically Reference to emojiSetsRenderIdentically function, needed due to minification.
+	 * @param {Function} emojiRendersEmptyCenterPoint Reference to emojiRendersEmptyCenterPoint function, needed due to minification.
+	 *
+	 * @return {boolean} True if the browser can render emoji, false if it cannot.
+	 */
+	function browserSupportsEmoji( context, type, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint ) {
+		var isIdentical;
+
+		switch ( type ) {
+			case 'flag':
+				/*
+				 * Test for Transgender flag compatibility. Added in Unicode 13.
+				 *
+				 * To test for support, we try to render it, and compare the rendering to how it would look if
+				 * the browser doesn't render it correctly (white flag emoji + transgender symbol).
+				 */
+				isIdentical = emojiSetsRenderIdentically(
+					context,
+					'\uD83C\uDFF3\uFE0F\u200D\u26A7\uFE0F', // as a zero-width joiner sequence
+					'\uD83C\uDFF3\uFE0F\u200B\u26A7\uFE0F' // separated by a zero-width space
+				);
+
+				if ( isIdentical ) {
+					return false;
+				}
+
+				/*
+				 * Test for Sark flag compatibility. This is the least supported of the letter locale flags,
+				 * so gives us an easy test for full support.
+				 *
+				 * To test for support, we try to render it, and compare the rendering to how it would look if
+				 * the browser doesn't render it correctly ([C] + [Q]).
+				 */
+				isIdentical = emojiSetsRenderIdentically(
+					context,
+					'\uD83C\uDDE8\uD83C\uDDF6', // as the sequence of two code points
+					'\uD83C\uDDE8\u200B\uD83C\uDDF6' // as the two code points separated by a zero-width space
+				);
+
+				if ( isIdentical ) {
+					return false;
+				}
+
+				/*
+				 * Test for English flag compatibility. England is a country in the United Kingdom, it
+				 * does not have a two letter locale code but rather a five letter sub-division code.
+				 *
+				 * To test for support, we try to render it, and compare the rendering to how it would look if
+				 * the browser doesn't render it correctly (black flag emoji + [G] + [B] + [E] + [N] + [G]).
+				 */
+				isIdentical = emojiSetsRenderIdentically(
+					context,
+					// as the flag sequence
+					'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F',
+					// with each code point separated by a zero-width space
+					'\uD83C\uDFF4\u200B\uDB40\uDC67\u200B\uDB40\uDC62\u200B\uDB40\uDC65\u200B\uDB40\uDC6E\u200B\uDB40\uDC67\u200B\uDB40\uDC7F'
+				);
+
+				return ! isIdentical;
+			case 'emoji':
+				/*
+				 * Does Emoji 16.0 cause the browser to go splat?
+				 *
+				 * To test for Emoji 16.0 support, try to render a new emoji: Splatter.
+				 *
+				 * The splatter emoji is a single code point emoji. Testing for browser support
+				 * required testing the center point of the emoji to see if it is empty.
+				 *
+				 * 0xD83E 0xDEDF (\uD83E\uDEDF) == 🫟 Splatter.
+				 *
+				 * When updating this test, please ensure that the emoji is either a single code point
+				 * or switch to using the emojiSetsRenderIdentically function and testing with a zero-width
+				 * joiner vs a zero-width space.
+				 */
+				var notSupported = emojiRendersEmptyCenterPoint( context, '\uD83E\uDEDF' );
+				return ! notSupported;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Checks emoji support tests.
+	 *
+	 * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+	 * scope. Everything must be passed by parameters.
+	 *
+	 * @since 6.3.0
+	 *
+	 * @private
+	 *
+	 * @param {string[]} tests Tests.
+	 * @param {Function} browserSupportsEmoji Reference to browserSupportsEmoji function, needed due to minification.
+	 * @param {Function} emojiSetsRenderIdentically Reference to emojiSetsRenderIdentically function, needed due to minification.
+	 * @param {Function} emojiRendersEmptyCenterPoint Reference to emojiRendersEmptyCenterPoint function, needed due to minification.
+	 *
+	 * @return {SupportTests} Support tests.
+	 */
+	function testEmojiSupports( tests, browserSupportsEmoji, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint ) {
+		var canvas;
+		if (
+			typeof WorkerGlobalScope !== 'undefined' &&
+			self instanceof WorkerGlobalScope
+		) {
+			canvas = new OffscreenCanvas( 300, 150 ); // Dimensions are default for HTMLCanvasElement.
+		} else {
+			canvas = document.createElement( 'canvas' );
+		}
+
+		var context = canvas.getContext( '2d', { willReadFrequently: true } );
+
+		/*
+		 * Chrome on OS X added native emoji rendering in M41. Unfortunately,
+		 * it doesn't work when the font is bolder than 500 weight. So, we
+		 * check for bold rendering support to avoid invisible emoji in Chrome.
+		 */
+		context.textBaseline = 'top';
+		context.font = '600 32px Arial';
+
+		var supports = {};
+		tests.forEach( function ( test ) {
+			supports[ test ] = browserSupportsEmoji( context, test, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint );
+		} );
+		return supports;
+	}
+
+	/**
+	 * Adds a script to the head of the document.
+	 *
+	 * @ignore
+	 *
+	 * @since 4.2.0
+	 *
+	 * @param {string} src The url where the script is located.
+	 *
+	 * @return {void}
+	 */
+	function addScript( src ) {
+		var script = document.createElement( 'script' );
+		script.src = src;
+		script.defer = true;
+		document.head.appendChild( script );
+	}
+
+	settings.supports = {
+		everything: true,
+		everythingExceptFlag: true
+	};
+
+	// Create a promise for DOMContentLoaded since the worker logic may finish after the event has fired.
+	var domReadyPromise = new Promise( function ( resolve ) {
+		document.addEventListener( 'DOMContentLoaded', resolve, {
+			once: true
+		} );
+	} );
+
+	// Obtain the emoji support from the browser, asynchronously when possible.
+	new Promise( function ( resolve ) {
+		var supportTests = getSessionSupportTests();
+		if ( supportTests ) {
+			resolve( supportTests );
+			return;
+		}
+
+		if ( supportsWorkerOffloading() ) {
+			try {
+				// Note that the functions are being passed as arguments due to minification.
+				var workerScript =
+					'postMessage(' +
+					testEmojiSupports.toString() +
+					'(' +
+					[
+						JSON.stringify( tests ),
+						browserSupportsEmoji.toString(),
+						emojiSetsRenderIdentically.toString(),
+						emojiRendersEmptyCenterPoint.toString()
+					].join( ',' ) +
+					'));';
+				var blob = new Blob( [ workerScript ], {
+					type: 'text/javascript'
+				} );
+				var worker = new Worker( URL.createObjectURL( blob ), { name: 'wpTestEmojiSupports' } );
+				worker.onmessage = function ( event ) {
+					supportTests = event.data;
+					setSessionSupportTests( supportTests );
+					worker.terminate();
+					resolve( supportTests );
+				};
+				return;
+			} catch ( e ) {}
+		}
+
+		supportTests = testEmojiSupports( tests, browserSupportsEmoji, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint );
+		setSessionSupportTests( supportTests );
+		resolve( supportTests );
+	} )
+		// Once the browser emoji support has been obtained from the session, finalize the settings.
+		.then( function ( supportTests ) {
+			/*
+			 * Tests the browser support for flag emojis and other emojis, and adjusts the
+			 * support settings accordingly.
+			 */
+			for ( var test in supportTests ) {
+				settings.supports[ test ] = supportTests[ test ];
+
+				settings.supports.everything =
+					settings.supports.everything && settings.supports[ test ];
+
+				if ( 'flag' !== test ) {
+					settings.supports.everythingExceptFlag =
+						settings.supports.everythingExceptFlag &&
+						settings.supports[ test ];
+				}
+			}
+
+			settings.supports.everythingExceptFlag =
+				settings.supports.everythingExceptFlag &&
+				! settings.supports.flag;
+
+			// Sets DOMReady to false and assigns a ready function to settings.
+			settings.DOMReady = false;
+			settings.readyCallback = function () {
+				settings.DOMReady = true;
+			};
+		} )
+		.then( function () {
+			return domReadyPromise;
+		} )
+		.then( function () {
+			// When the browser can not render everything we need to load a polyfill.
+			if ( ! settings.supports.everything ) {
+				settings.readyCallback();
+
+				var src = settings.source || {};
+
+				if ( src.concatemoji ) {
+					addScript( src.concatemoji );
+				} else if ( src.wpemoji && src.twemoji ) {
+					addScript( src.twemoji );
+					addScript( src.wpemoji );
+				}
+			}
+		} );
+} )( window, document, window._wpemojiSettings );
+
+/* ]]> */
+</script>
+
+<style id="safelayout-cute-preloader-visible-css" data-no-optimize="1" data-no-minify="1">#sl-preloader{visibility: hidden;}</style><link rel='stylesheet' id='hfe-widgets-style-css' href='https://www.indomaret.co.id/wp-content/plugins/header-footer-elementor/inc/widgets-css/frontend.css?ver=2.2.0' type='text/css' media='all' />
+<style id='wp-emoji-styles-inline-css' type='text/css'>
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+</style>
+<style id='classic-theme-styles-inline-css' type='text/css'>
+/**
+ * These rules are needed for backwards compatibility.
+ * They should match the button element rules in the base theme.json file.
+ */
+.wp-block-button__link {
+	color: #ffffff;
+	background-color: #32373c;
+	border-radius: 9999px; /* 100% causes an oval, but any explicit but really high value retains the pill shape. */
+
+	/* This needs a low specificity so it won't override the rules from the button element if defined in theme.json. */
+	box-shadow: none;
+	text-decoration: none;
+
+	/* The extra 2px are added to size solids the same as the outline versions.*/
+	padding: calc(0.667em + 2px) calc(1.333em + 2px);
+
+	font-size: 1.125em;
+}
+
+.wp-block-file__button {
+	background: #32373c;
+	color: #ffffff;
+	text-decoration: none;
+}
+
+</style>
+<style id='global-styles-inline-css' type='text/css'>
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgba(6,147,227,1) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgba(252,185,0,1) 0%,rgba(255,105,0,1) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgba(255,105,0,1) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgba(255, 255, 255, 1), 6px 6px rgba(0, 0, 0, 1);--wp--preset--shadow--crisp: 6px 6px 0px rgba(0, 0, 0, 1);}:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}
+:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}
+:root :where(.wp-block-pullquote){font-size: 1.5em;line-height: 1.6;}
+</style>
+<link rel='stylesheet' id='inf-font-awesome-css' href='https://www.indomaret.co.id/wp-content/plugins/blog-designer-pack/assets/css/font-awesome.min.css?ver=4.0.3' type='text/css' media='all' />
+<link rel='stylesheet' id='owl-carousel-css' href='https://www.indomaret.co.id/wp-content/plugins/blog-designer-pack/assets/css/owl.carousel.min.css?ver=4.0.3' type='text/css' media='all' />
+<link rel='stylesheet' id='bdpp-public-style-css' href='https://www.indomaret.co.id/wp-content/plugins/blog-designer-pack/assets/css/bdpp-public.css?ver=4.0.3' type='text/css' media='all' />
+<link rel='stylesheet' id='sweetalert2-css' href='https://www.indomaret.co.id/wp-content/plugins/cf7-popups//views/assets/css/sweetalert2.min.css?ver=1.2.0' type='text/css' media='all' />
+<link rel='stylesheet' id='cf7-popups-frontend-css' href='https://www.indomaret.co.id/wp-content/plugins/cf7-popups//views/assets/css/frontend.css?ver=1.2.0' type='text/css' media='all' />
+<link rel='stylesheet' id='contact-form-7-css' href='https://www.indomaret.co.id/wp-content/plugins/contact-form-7/includes/css/styles.css?ver=6.0.4' type='text/css' media='all' />
+<link rel='stylesheet' id='embedpress-style-css' href='https://www.indomaret.co.id/wp-content/plugins/embedpress/assets/css/embedpress.css?ver=4.2.9' type='text/css' media='all' />
+<link rel='stylesheet' id='searchandfilter-css' href='https://www.indomaret.co.id/wp-content/plugins/search-filter/style.css?ver=1' type='text/css' media='all' />
+<link rel='stylesheet' id='ivory-search-styles-css' href='https://www.indomaret.co.id/wp-content/plugins/add-search-to-menu/public/css/ivory-search.min.css?ver=5.5.9' type='text/css' media='all' />
+<link rel='stylesheet' id='cf7-pdf-generation-public-css-css' href='https://www.indomaret.co.id/wp-content/plugins/generate-pdf-using-contact-form-7/assets/css/cf7-pdf-generation-public-min.css?ver=1.2' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-style-css' href='https://www.indomaret.co.id/wp-content/plugins/header-footer-elementor/assets/css/header-footer-elementor.css?ver=2.2.0' type='text/css' media='all' />
+<link rel='stylesheet' id='elementor-frontend-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/css/frontend.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='elementor-post-6-css' href='https://www.indomaret.co.id/wp-content/uploads/elementor/css/post-6.css?ver=1794211290' type='text/css' media='all' />
+<link rel='stylesheet' id='e-animation-fadeInLeft-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/animations/styles/fadeInLeft.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='widget-heading-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/css/widget-heading.min.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='widget-image-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/css/widget-image.min.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='e-animation-fadeInRight-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/animations/styles/fadeInRight.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='e-animation-fadeIn-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/animations/styles/fadeIn.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='e-animation-zoomIn-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/animations/styles/zoomIn.css?ver=3.28.4' type='text/css' media='all' />
+<link rel='stylesheet' id='elementor-post-1136-css' href='https://www.indomaret.co.id/wp-content/uploads/elementor/css/post-1136.css?ver=1795055991' type='text/css' media='all' />
+<link rel='stylesheet' id='style-css' href='https://www.indomaret.co.id/wp-content/themes/Eben-Theme-1/style.css?ver=1750843620' type='text/css' media='all' />
+<link rel='stylesheet' id='fa6-css' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css?ver=6.5.0' type='text/css' media='all' />
+<link rel='stylesheet' id='dashicons-css' href='https://www.indomaret.co.id/wp-includes/css/dashicons.css?ver=6.8.3' type='text/css' media='all' />
+<link rel='stylesheet' id='cf7cf-style-css' href='https://www.indomaret.co.id/wp-content/plugins/cf7-conditional-fields/style.css?ver=2.5.9' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-elementor-icons-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/eicons/css/elementor-icons.min.css?ver=5.34.0' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-icons-list-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/css/widget-icon-list.min.css?ver=3.24.3' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-social-icons-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/css/widget-social-icons.min.css?ver=3.24.0' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-social-share-icons-brands-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/font-awesome/css/brands.css?ver=5.15.3' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-social-share-icons-fontawesome-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/font-awesome/css/fontawesome.css?ver=5.15.3' type='text/css' media='all' />
+<link rel='stylesheet' id='hfe-nav-menu-icons-css' href='https://www.indomaret.co.id/wp-content/plugins/elementor/assets/lib/font-awesome/css/solid.css?ver=5.15.3' type='text/css' media='all' />
+<link rel='stylesheet' id='elementor-gf-local-roboto-css' href='https://www.indomaret.co.id/wp-content/uploads/elementor/google-fonts/css/roboto.css?ver=1751351812' type='text/css' media='all' />
+<link rel='stylesheet' id='elementor-gf-local-robotoslab-css' href='https://www.indomaret.co.id/wp-content/uploads/elementor/google-fonts/css/robotoslab.css?ver=1751351205' type='text/css' media='all' />
+<link rel='stylesheet' id='elementor-gf-local-montserrat-css' href='https://www.indomaret.co.id/wp-content/uploads/elementor/google-fonts/css/montserrat.css?ver=1751351434' type='text/css' media='all' />
+<!--n2css--><!--n2js--><script type="text/javascript" src="https://www.indomaret.co.id/wp-includes/js/jquery/jquery.js?ver=3.7.1" id="jquery-core-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-includes/js/jquery/jquery-migrate.js?ver=3.4.1" id="jquery-migrate-js"></script>
+<script type="text/javascript" id="jquery-js-after">
+/* <![CDATA[ */
+!function($){"use strict";$(document).ready(function(){$(this).scrollTop()>100&&$(".hfe-scroll-to-top-wrap").removeClass("hfe-scroll-to-top-hide"),$(window).scroll(function(){$(this).scrollTop()<100?$(".hfe-scroll-to-top-wrap").fadeOut(300):$(".hfe-scroll-to-top-wrap").fadeIn(300)}),$(".hfe-scroll-to-top-wrap").on("click",function(){$("html, body").animate({scrollTop:0},300);return!1})})}(jQuery);
+/* ]]> */
+</script>
+<script type="text/javascript" id="mo2fa_elementor_script-js-extra">
+/* <![CDATA[ */
+var my_ajax_object = {"ajax_url":"https:\/\/www.indomaret.co.id\/login\/","nonce":"c4dfdcec7a","mo2f_login_option":"1","mo2f_enable_login_with_2nd_factor":""};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/miniorange-2-factor-authentication/includes/js/mo2fa_elementor.min.js?ver=6.4.0" id="mo2fa_elementor_script-js"></script>
+<script type="text/javascript" id="real3d-flipbook-global-js-extra">
+/* <![CDATA[ */
+var flipbookOptions_global = {"pages":[],"pdfUrl":"","printPdfUrl":"","tableOfContent":[],"id":"","bookId":"","date":"","lightboxThumbnailUrl":"","mode":"normal","viewMode":"webgl","pageTextureSize":"3000","pageTextureSizeSmall":"1500","pageTextureSizeMobile":"","pageTextureSizeMobileSmall":"1000","minPixelRatio":"1","pdfTextLayer":"true","zoomMin":"0.9","zoomStep":"2","zoomSize":"","zoomReset":"false","doubleClickZoom":"true","pageDrag":"true","singlePageMode":"false","pageFlipDuration":"1","sound":"true","startPage":"1","pageNumberOffset":"0","deeplinking":{"enabled":"false","prefix":""},"responsiveView":"true","responsiveViewTreshold":"768","responsiveViewRatio":"1","cover":"true","backCover":"true","scaleCover":"false","pageCaptions":"false","height":"400","responsiveHeight":"true","containerRatio":"","thumbnailsOnStart":"false","contentOnStart":"false","searchOnStart":"","searchResultsThumbs":"false","tableOfContentCloseOnClick":"true","thumbsCloseOnClick":"true","autoplayOnStart":"false","autoplayInterval":"3000","autoplayLoop":"true","autoplayStartPage":"1","rightToLeft":"false","pageWidth":"","pageHeight":"","thumbSize":"130","logoImg":"","logoUrl":"","logoUrlTarget":"","logoCSS":"position:absolute;left:0;top:0;","menuSelector":"","zIndex":"auto","preloaderText":"","googleAnalyticsTrackingCode":"","pdfBrowserViewerIfIE":"false","modeMobile":"","viewModeMobile":"","aspectMobile":"","aspectRatioMobile":"0.71","singlePageModeIfMobile":"false","logoHideOnMobile":"false","mobile":{"thumbnailsOnStart":"false","contentOnStart":"false","pagesInMemory":"6","bitmapResizeHeight":"","bitmapResizeQuality":"","currentPage":{"enabled":"false"},"pdfUrl":""},"lightboxCssClass":"","lightboxLink":"","lightboxLinkNewWindow":"true","lightboxBackground":"rgb(81, 85, 88)","lightboxBackgroundPattern":"","lightboxBackgroundImage":"","lightboxContainerCSS":"display:inline-block;padding:10px;","lightboxThumbnailHeight":"300","lightboxThumbnailUrlCSS":"display:block;","lightboxThumbnailInfo":"false","lightboxThumbnailInfoText":"","lightboxThumbnailInfoCSS":"top: 0;  width: 100%; height: 100%; font-size: 16px; color: #000; background: rgba(255,255,255,.8); ","showTitle":"false","showDate":"false","hideThumbnail":"false","lightboxText":"","lightboxTextCSS":"display:block;","lightboxTextPosition":"top","lightBoxOpened":"false","lightBoxFullscreen":"false","lightboxStartPage":"","lightboxMarginV":"0","lightboxMarginH":"0","lights":"true","lightPositionX":"0","lightPositionY":"150","lightPositionZ":"1400","lightIntensity":"0.6","shadows":"true","shadowMapSize":"2048","shadowOpacity":"0.2","shadowDistance":"15","pageHardness":"2","coverHardness":"2","pageRoughness":"1","pageMetalness":"0","pageSegmentsW":"6","pageSegmentsH":"1","pagesInMemory":"20","bitmapResizeHeight":"","bitmapResizeQuality":"","pageMiddleShadowSize":"4","pageMiddleShadowColorL":"#7F7F7F","pageMiddleShadowColorR":"#AAAAAA","antialias":"false","pan":"0","tilt":"0","rotateCameraOnMouseDrag":"true","panMax":"20","panMin":"-20","tiltMax":"0","tiltMin":"0","currentPage":{"enabled":"true","title":"Current page","hAlign":"left","vAlign":"top"},"btnAutoplay":{"enabled":"true","title":"Autoplay"},"btnNext":{"enabled":"true","title":"Next Page"},"btnLast":{"enabled":"false","title":"Last Page"},"btnPrev":{"enabled":"true","title":"Previous Page"},"btnFirst":{"enabled":"false","title":"First Page"},"btnZoomIn":{"enabled":"true","title":"Zoom in"},"btnZoomOut":{"enabled":"true","title":"Zoom out"},"btnToc":{"enabled":"true","title":"Table of Contents"},"btnThumbs":{"enabled":"true","title":"Pages"},"btnShare":{"enabled":"true","title":"Share"},"btnNotes":{"enabled":"false","title":"Notes"},"btnDownloadPages":{"enabled":"false","url":"","title":"Download pages"},"btnDownloadPdf":{"enabled":"true","url":"","title":"Download PDF","forceDownload":"true","openInNewWindow":"true"},"btnSound":{"enabled":"true","title":"Sound"},"btnExpand":{"enabled":"true","title":"Toggle fullscreen"},"btnSingle":{"enabled":"true","title":"Toggle single page"},"btnSearch":{"enabled":"false","title":"Search"},"search":{"enabled":"false","title":"Search"},"btnBookmark":{"enabled":"false","title":"Bookmark"},"btnPrint":{"enabled":"true","title":"Print"},"btnTools":{"enabled":"true","title":"Tools"},"btnClose":{"enabled":"true","title":"Close"},"whatsapp":{"enabled":"true"},"twitter":{"enabled":"true"},"facebook":{"enabled":"true"},"pinterest":{"enabled":"true"},"email":{"enabled":"true"},"linkedin":{"enabled":"true"},"digg":{"enabled":"false"},"reddit":{"enabled":"false"},"shareUrl":"","shareTitle":"","shareImage":"","layout":"1","icons":"FontAwesome","skin":"light","useFontAwesome5":"true","sideNavigationButtons":"true","menuNavigationButtons":"false","backgroundColor":"rgb(81, 85, 88)","backgroundPattern":"","backgroundImage":"","backgroundTransparent":"false","menuBackground":"","menuShadow":"","menuMargin":"0","menuPadding":"0","menuOverBook":"false","menuFloating":"false","menuTransparent":"false","menu2Background":"","menu2Shadow":"","menu2Margin":"0","menu2Padding":"0","menu2OverBook":"true","menu2Floating":"false","menu2Transparent":"true","skinColor":"","skinBackground":"","hideMenu":"false","menuAlignHorizontal":"center","btnColor":"","btnColorHover":"","btnBackground":"none","btnRadius":"0","btnMargin":"0","btnSize":"18","btnPaddingV":"10","btnPaddingH":"10","btnShadow":"","btnTextShadow":"","btnBorder":"","arrowColor":"#fff","arrowColorHover":"#fff","arrowBackground":"rgba(0,0,0,0)","arrowBackgroundHover":"rgba(0, 0, 0, .15)","arrowRadius":"4","arrowMargin":"4","arrowSize":"40","arrowPadding":"10","arrowTextShadow":"0px 0px 1px rgba(0, 0, 0, 1)","arrowBorder":"","closeBtnColorHover":"#FFF","closeBtnBackground":"rgba(0,0,0,.4)","closeBtnRadius":"0","closeBtnMargin":"0","closeBtnSize":"20","closeBtnPadding":"5","closeBtnTextShadow":"","closeBtnBorder":"","floatingBtnColor":"","floatingBtnColorHover":"","floatingBtnBackground":"","floatingBtnBackgroundHover":"","floatingBtnRadius":"","floatingBtnMargin":"","floatingBtnSize":"","floatingBtnPadding":"","floatingBtnShadow":"","floatingBtnTextShadow":"","floatingBtnBorder":"","currentPageMarginV":"5","currentPageMarginH":"5","arrowsAlwaysEnabledForNavigation":"true","arrowsDisabledNotFullscreen":"true","touchSwipeEnabled":"true","fitToWidth":"false","rightClickEnabled":"true","linkColor":"rgba(0, 0, 0, 0)","linkColorHover":"rgba(255, 255, 0, 1)","linkOpacity":"0.4","linkTarget":"_blank","pdfAutoLinks":"false","disableRange":"false","strings":{"print":"Print","printLeftPage":"Print left page","printRightPage":"Print right page","printCurrentPage":"Print current page","printAllPages":"Print all pages","download":"Download","downloadLeftPage":"Download left page","downloadRightPage":"Download right page","downloadCurrentPage":"Download current page","downloadAllPages":"Download all pages","bookmarks":"Bookmarks","bookmarkLeftPage":"Bookmark left page","bookmarkRightPage":"Bookmark right page","bookmarkCurrentPage":"Bookmark current page","search":"Search","findInDocument":"Find in document","pagesFoundContaining":"pages found containing","noMatches":"No matches","matchesFound":"matches found","page":"Page","matches":"matches","thumbnails":"Thumbnails","tableOfContent":"Table of Contents","share":"Share","pressEscToClose":"Press ESC to close","password":"Password","addNote":"Add note","typeInYourNote":"Type in your note..."},"access":"free","backgroundMusic":"","cornerCurl":"false","pdfTools":{"pageHeight":1500,"thumbHeight":200,"quality":0.8,"textLayer":"true","autoConvert":"true"},"slug":"","convertPDFLinks":"true","convertPDFLinksWithClass":"","convertPDFLinksWithoutClass":"","overridePDFEmbedder":"true","overrideDflip":"true","overrideWonderPDFEmbed":"true","override3DFlipBook":"true","overridePDFjsViewer":"true","resumeReading":"false","previewPages":"","previewMode":""};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/generate-pdf-using-contact-form-7/assets/js/cf7-pdf-generation-public-min.js?ver=1.2" id="cf7-pdf-generation-public-js-js"></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://www.indomaret.co.id/xmlrpc.php?rsd" />
+<meta name="generator" content="WordPress 6.8.3" />
+<link rel="canonical" href="https://www.indomaret.co.id/promosi/" />
+<link rel='shortlink' href='https://www.indomaret.co.id/?p=1136' />
+<link rel="alternate" title="oEmbed (JSON)" type="application/json+oembed" href="https://www.indomaret.co.id/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.indomaret.co.id%2Fpromosi%2F" />
+<link rel="alternate" title="oEmbed (XML)" type="text/xml+oembed" href="https://www.indomaret.co.id/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fwww.indomaret.co.id%2Fpromosi%2F&#038;format=xml" />
+
+    <style>
+        .syarat-ketentuan {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            border-radius: 8px;
+            border: none;
+            background-color: transparent;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+        .syarat-ketentuan h2 {
+            color: #006AB4;
+        }
+        .syarat-ketentuan ul {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        .syarat-ketentuan img {
+            max-width: 100%;
+            height: auto;
+        }
+        .syarat-ketentuan p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+    </style>
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<!-- This code is added by Analytify (7.0.1) https://analytify.io/ !-->
+			<script async src="https://www.googletagmanager.com/gtag/js?id=?G-8DEZLKB2F1"></script>
+			<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+
+			const configuration = JSON.parse( '{"anonymize_ip":"false","forceSSL":"false","allow_display_features":"true","debug_mode":true}' );
+			const gaID = 'G-8DEZLKB2F1';
+
+			
+			gtag('config', gaID, configuration);
+
+			
+			</script>
+
+			<!-- This code is added by Analytify (7.0.1) !--><meta name="generator" content="Elementor 3.28.4; features: e_font_icon_svg, additional_custom_breakpoints, e_local_google_fonts, e_element_cache; settings: css_print_method-external, google_font-enabled, font_display-swap">
+			<style>
+				.e-con.e-parent:nth-of-type(n+4):not(.e-lazyloaded):not(.e-no-lazyload),
+				.e-con.e-parent:nth-of-type(n+4):not(.e-lazyloaded):not(.e-no-lazyload) * {
+					background-image: none !important;
+				}
+				@media screen and (max-height: 1024px) {
+					.e-con.e-parent:nth-of-type(n+3):not(.e-lazyloaded):not(.e-no-lazyload),
+					.e-con.e-parent:nth-of-type(n+3):not(.e-lazyloaded):not(.e-no-lazyload) * {
+						background-image: none !important;
+					}
+				}
+				@media screen and (max-height: 640px) {
+					.e-con.e-parent:nth-of-type(n+2):not(.e-lazyloaded):not(.e-no-lazyload),
+					.e-con.e-parent:nth-of-type(n+2):not(.e-lazyloaded):not(.e-no-lazyload) * {
+						background-image: none !important;
+					}
+				}
+			</style>
+					<style type="text/css" id="wp-custom-css">
+			.wp-block-image img{
+width: 100%;
+}
+.flipbook-bookLayer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    cursor: -webkit-grab;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    background: white;
+    -ms-user-select: none;
+}
+
+.posting-related-post-thumbnail img {
+    width: 100%;
+    height: 100% !important; 
+    object-fit: cover;
+}
+
+
+.home-related .posting-post-date {
+    justify-self: start;
+	font-size: 12px;
+}
+
+.home-related .posting-post-category {
+    justify-self: end;
+    text-align: right;
+    font-size: 12px;
+}		</style>
+		    <link rel="icon" type="image/x-icon" href="https://www.indomaret.co.id/wp-content/themes/Eben-Theme-1/favicon.ico">
+ 
+</head>
+<body class="wp-singular page-template-default page page-id-1136 wp-theme-Eben-Theme-1 Eben-Theme-1 ehf-template-Eben-Theme-1 ehf-stylesheet-Eben-Theme-1 elementor-default elementor-kit-6 elementor-page elementor-page-1136"><script id="safelayout-cute-preloader-visible" data-no-delay-js data-no-optimize="1" data-no-minify="1" type="text/javascript">var vStyle = document.createElement("style");document.head.appendChild(vStyle);vStyle.textContent = "#sl-preloader{visibility: visible !important;}";</script><style id="safelayout-cute-preloader-css" data-no-optimize="1" data-no-minify="1">#sl-preloader {height: 100vh;left: 0;max-height: 100%;max-width: 100%;pointer-events: none;position: fixed;top: 0;width: 100vw;z-index: 9999999;}.sl-pl-close-icon {border: 1px solid blue;cursor: pointer;fill: red;height: 30px;stroke-linecap: round;stroke-width: 0.5px;stroke: blue;width: 30px;}#sl-pl-close-button {display: none;pointer-events: auto;position: absolute;right: 10px;top: 10px;z-index: 999;}.sl-pl-loaded .sl-pl-spin,.sl-pl-loaded .sl-pl-text,.sl-pl-loaded .sl-pl-custom,.sl-pl-loaded #sl-pl-counter,.sl-pl-loaded #sl-pl-close-button,.sl-pl-loaded .sl-pl-bar-container,.sl-pl-loaded .sl-pl-brand-container {opacity: 0;transition: opacity 0.5s ease-out 0s;}.sl-pl-back {pointer-events: auto;position: fixed;transition: all 0.5s cubic-bezier(0.645, 0.045, 0.355, 1) 0s;}.sl-pl-back-fade {height: 100%;left: 0;top: 0;width: 100%;}.sl-pl-loaded .sl-pl-back-fade {opacity: 0 !important;}.sl-pl-spin-container {left: 50%;position: absolute;text-align: center;top: 50%;transform: translate(-50%, -50%);-webkit-transform: translate(-50%, -50%);width: 100%;}.sl-pl-spin {display: inline-block;height: 50px;position: relative;width: 50px;}.sl-pl-icon-effect {display: inline-block;height: 0;position: absolute;visibility: hidden;width: 0;}.sl-pl-custom {display: inline-block;height: auto;max-width: 100%;}.sl-pl-back{opacity: 1;background: #fff !important;}</style><div id="sl-preloader"><div class="sl-pl-back sl-pl-back-fade"></div><div id="sl-pl-close-button"><svg class="sl-pl-close-icon" viewbox="0 0 50 50"><path d="M10 7A3 3 0 0 0 7.879 7.879 3 3 0 0 0 7.879 12.12L20.76 25 7.879 37.88A3 3 0 0 0 7.879 42.12 3 3 0 0 0 12.12 42.12L25 29.24 37.88 42.12A3 3 0 0 0 42.12 42.12 3 3 0 0 0 42.12 37.88L29.24 25 42.12 12.12A3 3 0 0 0 42.12 7.879 3 3 0 0 0 37.88 7.879L25 20.76 12.12 7.879A3 3 0 0 0 10 7Z" /></svg></div><div class="sl-pl-spin-container"></div></div>
+
+		<div data-elementor-type="wp-post" data-elementor-id="1259" class="elementor elementor-1259">
+				<div class="elementor-element elementor-element-3691341 elementor-hidden-desktop elementor-hidden-tablet e-flex e-con-boxed e-con e-parent" data-id="3691341" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-3131122 e-grid e-con-boxed e-con e-child" data-id="3131122" data-element_type="container">
+					<div class="e-con-inner">
+				<div class="elementor-element elementor-element-9302fea elementor-widget elementor-widget-image" data-id="9302fea" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+																<a href="/">
+							<img src="/wp-content/uploads/2025/03/Logo_Indomaret-scaled.png" title="" alt="" loading="lazy" />								</a>
+															</div>
+				</div>
+		<div class="elementor-element elementor-element-7276ede e-con-full e-flex e-con e-child" data-id="7276ede" data-element_type="container">
+				<div class="elementor-element elementor-element-cc9dcf9 elementor-widget elementor-widget-shortcode" data-id="cc9dcf9" data-element_type="widget" data-widget_type="shortcode.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-shortcode">
+	<!-- ===== Burger Button ===== -->
+	<header class="flex justify-end">
+		<button id="burgerBtn" class="text-white text-2xl bg-transparent focus:outline-none">
+			<span class="block w-8 h-1 bg-white mb-1"></span>
+			<span class="block w-8 h-1 bg-white mb-1"></span>
+			<span class="block w-8 h-1 bg-white"></span>
+		</button>
+	</header>
+
+	<!-- ===== Overlay (z-index 9998) ===== -->
+	<div id="sidebarOverlay"
+		 style="z-index:9998; pointer-events:auto;"
+		 class="fixed inset-0 bg-black bg-opacity-50 hidden"></div>
+
+	<!-- ===== Sidebar (z-index 9999) ===== -->
+	<div id="modal"
+		 style="z-index:9999; pointer-events:auto !important;"
+		 class="fixed top-0 right-0 w-4/5 sm:w-2/5 h-full bg-[#006ab4] text-white
+				translate-x-full transition-transform duration-300 ease-in-out
+				shadow-lg overflow-y-auto">
+
+		<!-- Header -->
+		<div class="flex items-center justify-between px-4 py-3 border-b border-white">
+			<span class="font-semibold text-sm"><div class="gtranslate_wrapper" id="gt-wrapper-56784996"></div></span>
+			<div class="flex items-center gap-4">
+				<button id="searchBtn" class="text-white focus:outline-none">
+					<i class="fa-solid fa-magnifying-glass text-xl"></i>
+				</button>
+				<button id="closeModal" class="text-white focus:outline-none">
+					<i class="fa-solid fa-xmark text-2xl"></i>
+				</button>
+			</div>
+		</div>
+
+		<!-- Menu -->
+		<ul class="mt-6 space-y-1 text-lg px-6">
+			<li class="relative menu-item">
+				<div class="flex justify-between items-center p-3 cursor-pointer">
+					<a href="/produk" class="block flex-1">Produk</a>
+					<span class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></span>
+				</div>
+				<ul class="submenu rounded-md hidden mt-1 pl-4">
+					<li><a href="/produk/brand-kami" class="block p-3">Brand Kami</a></li>
+					<li><a href="/produk/private-label" class="block p-3">Private Label</a></li>
+				</ul>
+			</li>
+
+			<li><a href="/layanan" class="block p-3">Layanan</a></li>
+			<li><a href="/promosi" class="block p-3">Promosi</a></li>
+			<li><a href="/news" class="block p-3">Berita</a></li>
+
+			<li class="relative menu-item">
+				<div class="flex justify-between items-center p-3 cursor-pointer">
+					<a href="/tentang-kami/" class="block flex-1">Tentang</a>
+					<span class="dropdown-arrow"><i class="fa-solid fa-chevron-down"></i></span>
+				</div>
+				<ul class="submenu rounded-md hidden mt-1 pl-4">
+					<li><a href="/tentang-kami/tentang-indomaret" class="block p-3">Tentang Indomaret</a></li>
+					<li><a href="/tentang/sejarah-kami" class="block p-3">Sejarah Kami</a></li>
+					<li><a href="/visi-budaya-perusahaan" class="block p-3">Visi & Budaya Perusahaan</a></li>
+					<li><a href="/tentang/kontribusi-sosial" class="block p-3">Kontribusi Sosial</a></li>
+				</ul>
+			</li>
+
+			<li><a href="https://career.indomaretgroup.com/" class="block p-3" target="_blank">Karir</a></li>
+		</ul>
+
+		<!-- Buttons -->
+		<div class="mt-6 flex flex-col space-y-3 px-6">
+			<a href="/waralaba">
+				<button class="w-full bg-white text-[#006ab4] p-3 rounded-lg font-semibold hover:bg-gray-200 transition">
+					Waralaba
+				</button>
+			</a>
+			<a href="/b2b">
+				<button class="w-full bg-white text-[#006ab4] p-3 rounded-lg font-semibold hover:bg-gray-200 transition">
+					B2B
+				</button>
+			</a>
+		</div>
+	</div>
+
+	<!-- ===== Search Modal ===== -->
+	<div id="searchModal"
+		 style="z-index:10000; pointer-events:auto;"
+		 class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+		<div class="bg-white rounded-lg p-6 w-11/12 max-w-md">
+			<div class="flex justify-between items-center mb-4">
+				<h3 class="text-lg font-bold text-gray-800">Pencarian</h3>
+				<button id="closeSearchModal" class="text-gray-600 hover:text-gray-800 focus:outline-none">
+					<i class="fa-solid fa-xmark text-xl"></i>
+				</button>
+			</div>
+			<form  class="is-search-form is-form-style is-form-style-3 is-form-id-1983 " action="https://www.indomaret.co.id/" method="get" role="search" ><label for="is-search-input-1983"><span class="is-screen-reader-text">Search for:</span><input  type="search" id="is-search-input-1983" name="s" value="" class="is-search-input" placeholder="Search here..." autocomplete=off /></label><button type="submit" class="is-search-submit"><span class="is-screen-reader-text">Search Button</span><span class="is-search-icon"><svg focusable="false" aria-label="Search" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24px"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg></span></button><input type="hidden" name="id" value="1983" /></form>		</div>
+	</div>
+
+	<!-- ===== JavaScript ===== -->
+	<script>
+	document.addEventListener('DOMContentLoaded', () => {
+		const burger = document.getElementById('burgerBtn');
+		const modal = document.getElementById('modal');
+		const overlay = document.getElementById('sidebarOverlay');
+		const closeModal = document.getElementById('closeModal');
+		const searchBtn = document.getElementById('searchBtn');
+		const searchModal = document.getElementById('searchModal');
+		const closeSearchModal = document.getElementById('closeSearchModal');
+
+		const openSidebar = () => {
+			modal.classList.remove('translate-x-full');
+			overlay.classList.remove('hidden');
+			document.body.style.overflow = 'hidden';
+		};
+
+		const closeSidebar = () => {
+			modal.classList.add('translate-x-full');
+			overlay.classList.add('hidden');
+			document.body.style.overflow = '';
+		};
+
+		burger?.addEventListener('click', openSidebar);
+		closeModal?.addEventListener('click', closeSidebar);
+		overlay?.addEventListener('click', closeSidebar);
+
+		searchBtn?.addEventListener('click', e => {
+			e.stopPropagation();
+			searchModal.classList.remove('hidden');
+		});
+		closeSearchModal?.addEventListener('click', () => {
+			searchModal.classList.add('hidden');
+		});
+		searchModal?.addEventListener('click', e => {
+			if (e.target === searchModal) {
+				searchModal.classList.add('hidden');
+			}
+		});
+
+		document.querySelectorAll('.menu-item').forEach(item => {
+			const toggle = item.querySelector('.dropdown-arrow');
+			const submenu = item.querySelector('.submenu');
+			const icon = toggle.querySelector('i');
+
+			toggle.addEventListener('click', e => {
+				e.preventDefault();
+				e.stopPropagation();
+
+				document.querySelectorAll('.submenu').forEach(menu => {
+					if (menu !== submenu) {
+						menu.classList.add('hidden');
+						const otherIcon = menu.parentElement.querySelector('.dropdown-arrow i');
+						otherIcon?.classList.replace('fa-chevron-up', 'fa-chevron-down');
+					}
+				});
+
+				submenu.classList.toggle('hidden');
+				icon.classList.toggle('fa-chevron-down');
+				icon.classList.toggle('fa-chevron-up');
+			});
+
+			item.querySelector('a').addEventListener('click', e => e.stopPropagation());
+		});
+
+		document.addEventListener('keydown', e => {
+			if (e.key === 'Escape') {
+				closeSidebar();
+				searchModal?.classList.add('hidden');
+			}
+		});
+	});
+	</script>
+
+	<style>
+		#modal, #modal * {
+			pointer-events: auto !important;
+		}
+		.submenu {
+			transition: all 0.3s ease;
+		}
+		.dropdown-arrow i {
+			transition: transform 0.3s ease;
+		}
+	</style>
+
+</div>
+						</div>
+				</div>
+				</div>
+					</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-04ee97a elementor-hidden-mobile e-flex e-con-boxed e-con e-parent" data-id="04ee97a" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;position&quot;:&quot;fixed&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-181d131 e-con-full e-flex e-con e-child" data-id="181d131" data-element_type="container">
+		<div class="elementor-element elementor-element-2bb2039 e-con-full e-flex e-con e-child" data-id="2bb2039" data-element_type="container">
+				<div class="elementor-element elementor-element-6ec8e08 elementor-widget elementor-widget-image" data-id="6ec8e08" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+																<a href="/">
+							<img src="/wp-content/uploads/2025/02/logos/idm-main-logo.png" title="" alt="" loading="lazy" />								</a>
+															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-d9cbed3 e-con-full elementor-hidden-tablet elementor-hidden-mobile e-flex e-con e-child" data-id="d9cbed3" data-element_type="container">
+				<div class="elementor-element elementor-element-1f27275 elementor-widget__width-initial hfe-submenu-icon-classic navigation-menu hfe-nav-menu__align-left hfe-submenu-animation-none hfe-link-redirect-child hfe-nav-menu__breakpoint-tablet elementor-widget elementor-widget-navigation-menu" data-id="1f27275" data-element_type="widget" data-settings="{&quot;width_dropdown_item&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:140,&quot;sizes&quot;:[]},&quot;dropdown_border_radius&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;top&quot;:&quot;0&quot;,&quot;right&quot;:&quot;0&quot;,&quot;bottom&quot;:&quot;0&quot;,&quot;left&quot;:&quot;0&quot;,&quot;isLinked&quot;:true},&quot;padding_horizontal_menu_item&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:15,&quot;sizes&quot;:[]},&quot;padding_horizontal_menu_item_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_horizontal_menu_item_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_vertical_menu_item&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:15,&quot;sizes&quot;:[]},&quot;padding_vertical_menu_item_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_vertical_menu_item_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;menu_space_between&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;menu_space_between_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;menu_space_between_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;menu_row_space&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;menu_row_space_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;menu_row_space_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;dropdown_border_radius_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;top&quot;:&quot;&quot;,&quot;right&quot;:&quot;&quot;,&quot;bottom&quot;:&quot;&quot;,&quot;left&quot;:&quot;&quot;,&quot;isLinked&quot;:true},&quot;dropdown_border_radius_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;top&quot;:&quot;&quot;,&quot;right&quot;:&quot;&quot;,&quot;bottom&quot;:&quot;&quot;,&quot;left&quot;:&quot;&quot;,&quot;isLinked&quot;:true},&quot;width_dropdown_item_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;width_dropdown_item_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_horizontal_dropdown_item&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_horizontal_dropdown_item_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_horizontal_dropdown_item_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_vertical_dropdown_item&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:15,&quot;sizes&quot;:[]},&quot;padding_vertical_dropdown_item_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;padding_vertical_dropdown_item_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;distance_from_menu&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;distance_from_menu_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;distance_from_menu_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_size&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_size_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_size_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_border_width&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_border_width_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_border_width_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_border_radius&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_border_radius_tablet&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]},&quot;toggle_border_radius_mobile&quot;:{&quot;unit&quot;:&quot;px&quot;,&quot;size&quot;:&quot;&quot;,&quot;sizes&quot;:[]}}" data-widget_type="navigation-menu.default">
+				<div class="elementor-widget-container">
+								<div class="hfe-nav-menu hfe-layout-horizontal hfe-nav-menu-layout horizontal hfe-pointer__none" data-layout="horizontal">
+				<div role="button" class="hfe-nav-menu__toggle elementor-clickable">
+					<span class="screen-reader-text">Menu</span>
+					<div class="hfe-nav-menu-icon">
+						<svg aria-hidden="true"  class="e-font-icon-svg e-fas-align-justify" viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"><path d="M432 416H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-128H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-128H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-128H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z"></path></svg>					</div>
+				</div>
+				<nav itemscope="itemscope" itemtype="https://schema.org/SiteNavigationElement" class="hfe-nav-menu__layout-horizontal hfe-nav-menu__submenu-classic" data-toggle-icon="&lt;svg aria-hidden=&quot;true&quot; tabindex=&quot;0&quot; class=&quot;e-font-icon-svg e-fas-align-justify&quot; viewBox=&quot;0 0 448 512&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;&lt;path d=&quot;M432 416H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-128H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-128H16a16 16 0 0 0-16 16v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16v-32a16 16 0 0 0-16-16zm0-128H16A16 16 0 0 0 0 48v32a16 16 0 0 0 16 16h416a16 16 0 0 0 16-16V48a16 16 0 0 0-16-16z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;" data-close-icon="&lt;svg aria-hidden=&quot;true&quot; tabindex=&quot;0&quot; class=&quot;e-font-icon-svg e-far-window-close&quot; viewBox=&quot;0 0 512 512&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;&gt;&lt;path d=&quot;M464 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h416c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48zm0 394c0 3.3-2.7 6-6 6H54c-3.3 0-6-2.7-6-6V86c0-3.3 2.7-6 6-6h404c3.3 0 6 2.7 6 6v340zM356.5 194.6L295.1 256l61.4 61.4c4.6 4.6 4.6 12.1 0 16.8l-22.3 22.3c-4.6 4.6-12.1 4.6-16.8 0L256 295.1l-61.4 61.4c-4.6 4.6-12.1 4.6-16.8 0l-22.3-22.3c-4.6-4.6-4.6-12.1 0-16.8l61.4-61.4-61.4-61.4c-4.6-4.6-4.6-12.1 0-16.8l22.3-22.3c4.6-4.6 12.1-4.6 16.8 0l61.4 61.4 61.4-61.4c4.6-4.6 12.1-4.6 16.8 0l22.3 22.3c4.7 4.6 4.7 12.1 0 16.8z&quot;&gt;&lt;/path&gt;&lt;/svg&gt;" data-full-width="yes">
+					<ul id="menu-1-1f27275" class="hfe-nav-menu"><li id="menu-item-1322" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children parent hfe-has-submenu hfe-creative-menu"><div class="hfe-has-submenu-container"><a href="https://www.indomaret.co.id/produk-kami/" itemprop="url" class = "hfe-menu-item">Produk<span class='hfe-menu-toggle sub-arrow hfe-menu-child-0'><i class='fa'></i></span></a></div>
+<ul class="sub-menu">
+	<li id="menu-item-1323" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page hfe-creative-menu"><a href="https://www.indomaret.co.id/brand-kami/" itemprop="url" class = "hfe-sub-menu-item">Brand Kami</a></li>
+	<li id="menu-item-1324" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page hfe-creative-menu"><a href="https://www.indomaret.co.id/private-label/" itemprop="url" class = "hfe-sub-menu-item">Private Label</a></li>
+</ul>
+</li>
+<li id="menu-item-1325" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page parent hfe-creative-menu"><a href="https://www.indomaret.co.id/layanan/" itemprop="url" class = "hfe-menu-item">Layanan</a></li>
+<li id="menu-item-1327" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item page_item page-item-1136 current_page_item parent hfe-creative-menu"><a href="https://www.indomaret.co.id/promosi/" itemprop="url" class = "hfe-menu-item">Promosi</a></li>
+<li id="menu-item-1326" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page parent hfe-creative-menu"><a href="https://www.indomaret.co.id/news/" itemprop="url" class = "hfe-menu-item">Berita</a></li>
+<li id="menu-item-1329" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children parent hfe-has-submenu hfe-creative-menu"><div class="hfe-has-submenu-container"><a href="https://www.indomaret.co.id/tentang-kami/" itemprop="url" class = "hfe-menu-item">Tentang<span class='hfe-menu-toggle sub-arrow hfe-menu-child-0'><i class='fa'></i></span></a></div>
+<ul class="sub-menu">
+	<li id="menu-item-2784" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page hfe-creative-menu"><a href="https://www.indomaret.co.id/tentang-kami/tentang-indomaret/" itemprop="url" class = "hfe-sub-menu-item">Tentang Indomaret</a></li>
+	<li id="menu-item-1331" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page hfe-creative-menu"><a href="https://www.indomaret.co.id/tentang-kami/sejarah-kami/" itemprop="url" class = "hfe-sub-menu-item">Sejarah Kami</a></li>
+	<li id="menu-item-1332" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page hfe-creative-menu"><a href="https://www.indomaret.co.id/tentang-kami/visi-budaya-perusahaan/" itemprop="url" class = "hfe-sub-menu-item">Visi &#038; Budaya Perusahaan</a></li>
+	<li id="menu-item-1330" itemprop="name" class="menu-item menu-item-type-post_type menu-item-object-page hfe-creative-menu"><a href="https://www.indomaret.co.id/tentang-kami/kontribusi-sosial/" itemprop="url" class = "hfe-sub-menu-item">Kontribusi Sosial</a></li>
+</ul>
+</li>
+<li id="menu-item-2502" itemprop="name" class="menu-item menu-item-type-custom menu-item-object-custom parent hfe-creative-menu"><a target="_blank"rel="noopener" href="https://career.indomaretgroup.com/" itemprop="url" class = "hfe-menu-item">Karir</a></li>
+</ul> 
+				</nav>
+			</div>
+							</div>
+				</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-c6bfd60 e-con-full e-flex e-con e-child" data-id="c6bfd60" data-element_type="container">
+				<div class="elementor-element elementor-element-ec17c26 elementor-widget-mobile__width-initial elementor-hidden-desktop elementor-widget elementor-widget-html" data-id="ec17c26" data-element_type="widget" data-widget_type="html.default">
+				<div class="elementor-widget-container">
+					<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Modal Burger Menu</title>
+</head>
+<body class="bg-gray-100">
+    <header class="text-white p-4 flex justify-end items-center">
+        <button id="burgerBtn" class="text-white text-2xl border-none bg-transparent focus:outline-none">
+            <span class="block w-8 h-1 bg-white mb-1"></span>
+            <span class="block w-8 h-1 bg-white mb-1"></span>
+            <span class="block w-8 h-1 bg-white"></span>
+        </button>
+    </header>
+
+    <!-- Modal Fullscreen -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-100 flex justify-center items-center hidden">
+        <div class="bg-white w-full h-full p-6 overflow-auto relative">
+            <button id="closeModal" class="absolute top-4 right-6 text-3xl text-gray-700">&times;</button>
+            <ul class="mt-10 space-y-4 text-lg">
+                <li>
+                    <button class="w-full flex justify-between items-center p-3 border-b" onclick="toggleDropdown('produk-dropdown')">
+                        Produk <span id="arrow-produk" class="transition-transform">&#9662;</span>
+                    </button>
+                    <ul id="produk-dropdown" class="hidden pl-6 space-y-2">
+                        <li><a href="/brand-kami" class="block p-2 border-b">Brand Kami</a></li>
+                        <li><a href="/private-label" class="block p-2 border-b">Private Label</a></li>
+                    </ul>
+                </li>
+                <li><a href="/layanan" class="block p-3 border-b">Layanan</a></li>
+                <li><a href="/promosi" class="block p-3 border-b">Promosi</a></li>
+                <li><a href="/berita" class="block p-3 border-b">Berita</a></li>
+                <li>
+                    <button class="w-full flex justify-between items-center p-3 border-b" onclick="toggleDropdown('tentang-dropdown')">
+                        Tentang Indomaret <span id="arrow-tentang" class="transition-transform">&#9662;</span>
+                    </button>
+                    <ul id="tentang-dropdown" class="hidden pl-6 space-y-2">
+                        <li><a href="/tentang-kami" class="block p-2 border-b">Tentang Kami</a></li>
+                        <li><a href="/kontribusi-sosial" class="block p-2 border-b">Kontribusi Sosial</a></li>
+                        <li><a href="/sejarah" class="block p-2 border-b">Sejarah Kami</a></li>
+                        <li><a href="/visi-misi" class="block p-2 border-b">Visi & Budaya Perusahaan</a></li>
+                    </ul>
+                </li>
+
+                <!-- Tombol Waralaba & B2B -->
+                <li class="flex gap-4 mt-4">
+                    <a href="/waralaba" class="w-full">
+                        <button class="w-full bg-blue-700 text-white p-3 rounded-lg shadow-md hover:bg-blue-800 transition">
+                            Waralaba
+                        </button>
+                    </a>
+                    <a href="/b2b" class="w-full">
+                        <button class="w-full bg-green-600 text-white p-3 rounded-lg shadow-md hover:bg-green-700 transition">
+                            B2B
+                        </button>
+                    </a>
+                </li>
+
+                <li class="text-center text-sm p-3 border-t">
+                    <?php echo do_shortcode('[gtranslate]'); ?>
+                    
+                </li>
+            </ul>
+
+            <!-- Form Pencarian -->
+            <div class="mt-6">
+                <form id="search-form" class="search-form" action="<?php echo esc_url(home_url('/')); ?>" method="get">
+                    <input type="text" name="s" class="search-input border p-3 w-full rounded" placeholder="Cari..." />
+                    <button type="submit" class="search-button bg-blue-700 text-white p-3 w-full mt-3 rounded">Cari</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('burgerBtn').addEventListener('click', function() {
+            document.getElementById('modal').classList.remove('hidden');
+        });
+        
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('modal').classList.add('hidden');
+        });
+
+        function toggleDropdown(id) {
+            let dropdown = document.getElementById(id);
+            let arrow = document.querySelector(`[onclick="toggleDropdown('${id}')"] span`);
+
+            dropdown.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180'); // Efek rotasi pada ikon panah
+        }
+    </script>
+
+    <style>
+        /* Memperbaiki tombol burger */
+        #burgerBtn {
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        /* Animasi dropdown arrow */
+        .transition-transform {
+            transition: transform 0.3s ease-in-out;
+        }
+    </style>
+</body>
+</html>
+				</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-76e158b e-con-full elementor-hidden-tablet elementor-hidden-mobile e-flex e-con e-child" data-id="76e158b" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-5d3f178 elementor-align-right elementor-widget elementor-widget-button" data-id="5d3f178" data-element_type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="/waralaba/">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">Waralaba</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-1b95526 e-con-full elementor-hidden-tablet elementor-hidden-mobile e-flex e-con e-child" data-id="1b95526" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-ee256b5 elementor-widget__width-initial elementor-widget elementor-widget-button" data-id="ee256b5" data-element_type="widget" data-widget_type="button.default">
+				<div class="elementor-widget-container">
+									<div class="elementor-button-wrapper">
+					<a class="elementor-button elementor-button-link elementor-size-sm" href="/B2B/">
+						<span class="elementor-button-content-wrapper">
+									<span class="elementor-button-text">B2B</span>
+					</span>
+					</a>
+				</div>
+								</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-b64c702 e-con-full elementor-hidden-tablet elementor-hidden-mobile e-flex e-con e-child" data-id="b64c702" data-element_type="container">
+				<div class="elementor-element elementor-element-aceb56a elementor-widget elementor-widget-shortcode" data-id="aceb56a" data-element_type="widget" data-widget_type="shortcode.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-shortcode"> <div class="gtranslate_wrapper" id="gt-wrapper-32890203"></div></div>
+						</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-d31daf9 e-con-full elementor-hidden-tablet elementor-hidden-mobile e-flex e-con e-child" data-id="d31daf9" data-element_type="container">
+				<div class="elementor-element elementor-element-87d2000 elementor-widget elementor-widget-shortcode" data-id="87d2000" data-element_type="widget" data-widget_type="shortcode.default">
+				<div class="elementor-widget-container">
+							<div class="elementor-shortcode">    
+    <div class="search-icon-container">
+        <!-- Icon Pencarian -->
+        <button id="search_popup_6b0343df4d17c_trigger" class="search-icon-button" aria-label="Buka pencarian">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </button>
+        
+        <!-- Popup Form Pencarian dengan Overlay -->
+        <div id="search_popup_6b0343df4d17c_popup" class="search-popup-overlay" style="display: none;">
+            <div class="search-popup-container">
+                <div class="search-popup-header">
+                    <h3>Pencarian</h3>
+                    <button id="search_popup_6b0343df4d17c_close" class="search-popup-close" aria-label="Tutup pencarian">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="search-popup-content">
+                    <form role="search" method="get" action="https://www.indomaret.co.id/">
+                        <input type="search" name="s" placeholder="Cari..." required>
+                        <button type="submit" aria-label="Cari">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        /* Style untuk Container Icon */
+        .search-icon-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        /* Style untuk Button Icon */
+        .search-icon-button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: #FFFFFF;
+            transition: color 0.3s ease;
+        }
+        
+        .search-icon-button:hover {
+            color: orange;
+        }
+        
+        /* Style untuk Overlay */
+        .search-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        /* Style untuk Container Popup */
+        .search-popup-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            width: 90%;
+            max-width: 600px;
+            animation: scaleIn 0.3s ease;
+        }
+        
+        /* Style untuk Header Popup */
+        .search-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .search-popup-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .search-popup-close {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            padding: 5px;
+        }
+        
+        .search-popup-close:hover {
+            color: #ff5555;
+        }
+        
+        /* Style untuk Content Popup */
+        .search-popup-content {
+            padding: 20px;
+        }
+        
+        .search-popup-content form {
+            display: flex;
+            width: 100%;
+        }
+        
+        .search-popup-content input[type="search"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        
+        .search-popup-content input[type="search"]:focus {
+            border-color: #006ab4;
+        }
+        
+        .search-popup-content button[type="submit"] {
+            background-color: #006ab4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .search-popup-content button[type="submit"]:hover {
+            background-color: #005491;
+        }
+        
+        /* Animasi */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Media Queries untuk Responsif */
+        @media (max-width: 600px) {
+            .search-popup-container {
+                width: 95%;
+            }
+            
+            .search-popup-content input[type="search"] {
+                font-size: 14px;
+                padding: 10px 12px;
+            }
+            
+            .search-popup-content button[type="submit"] {
+                padding: 10px 15px;
+            }
+        }
+    </style>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ambil elemen berdasarkan ID unik
+        const searchTrigger = document.getElementById('search_popup_6b0343df4d17c_trigger');
+        const searchPopup = document.getElementById('search_popup_6b0343df4d17c_popup');
+        const searchClose = document.getElementById('search_popup_6b0343df4d17c_close');
+        
+        // Event listener untuk membuka popup
+        searchTrigger.addEventListener('click', function() {
+            searchPopup.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Mencegah scrolling
+            
+            // Fokus pada input pencarian setelah popup muncul
+            setTimeout(function() {
+                const searchInput = searchPopup.querySelector('input[type="search"]');
+                if (searchInput) searchInput.focus();
+            }, 100);
+        });
+        
+        // Event listener untuk menutup popup
+        searchClose.addEventListener('click', function() {
+            searchPopup.style.display = 'none';
+            document.body.style.overflow = ''; // Mengaktifkan kembali scrolling
+        });
+        
+        // Menutup popup saat mengklik overlay
+        searchPopup.addEventListener('click', function(e) {
+            if (e.target === searchPopup) {
+                searchPopup.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Menutup popup dengan tombol Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && searchPopup.style.display === 'flex') {
+                searchPopup.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+    });
+    </script>
+    
+    </div>
+						</div>
+				</div>
+				</div>
+					</div>
+				</div>
+				</div>
+		
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"\/*"},{"not":{"href_matches":["\/wp-*.php","\/wp-admin\/*","\/wp-content\/uploads\/*","\/wp-content\/*","\/wp-content\/plugins\/*","\/wp-content\/themes\/Eben-Theme-1\/*","\/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+    <style>
+    .cf7-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px 30px;
+        border-radius: 8px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        z-index: 9999;
+        display: none;
+    }
+
+    .cf7-popup-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 9998;
+        display: none;
+    }
+
+    .cf7-popup button {
+        margin-top: 15px;
+        padding: 8px 14px;
+        background: #0073aa;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    </style>
+
+    <div class="cf7-popup-overlay" id="cf7Overlay"></div>
+    <div class="cf7-popup" id="cf7Popup">
+        <p id="cf7PopupMessage"></p>
+        <button onclick="closeCf7Popup()">OK</button>
+    </div>
+
+    <script>
+    function showCf7Popup(message) {
+        document.getElementById('cf7PopupMessage').textContent = message;
+        document.getElementById('cf7Overlay').style.display = 'block';
+        document.getElementById('cf7Popup').style.display = 'block';
+    }
+
+    function closeCf7Popup() {
+        document.getElementById('cf7Popup').style.display = 'none';
+        document.getElementById('cf7Overlay').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+
+        fileInputs.forEach(function (input) {
+            input.addEventListener('change', function () {
+                const file = input.files[0];
+                if (!file) return;
+
+				const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+                const maxSizeMB = 1;
+
+                if (!validTypes.includes(file.type)) {
+                    showCf7Popup('Jenis file tidak valid. Harap unggah file JPG, PNG, atau PDF.');
+                    input.value = '';
+                    return;
+                }
+
+                if (file.size > maxSizeMB * 1024 * 1024) {
+                    showCf7Popup('Ukuran file terlalu besar. Maksimal 1MB.');
+                    input.value = '';
+                }
+            });
+        });
+    });
+    </script>
+    <style>
+        #brosur-paling-murah {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#brosur-paling-murah");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/paling-murah/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #hemat-minggu-ini {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#hemat-minggu-ini");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/hemat-minggu-ini/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #brosur-tebus-heboh {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#brosur-tebus-heboh");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/tebus-heboh/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #harga-khusus-member {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#harga-khusus-member");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/harga-khusus-member/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #promo-bank-ewallet {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#promo-bank-ewallet");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/promo-bank-ewallet/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #pulsanya-sekalian-kakak {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#pulsanya-sekalian-kakak");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/pulsanya-sekalian-kakak/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #brosur-promo-4-hari,
+        #brosur-promo-susu-perlengkapan-balita,
+        #brosur-promosi-berhadiah {
+            cursor: pointer;
+            display: inline-block;
+            transition: opacity 0.2s ease;
+        }
+
+        #brosur-promo-4-hari:hover,
+        #brosur-promo-susu-perlengkapan-balita:hover,
+        #brosur-promosi-berhadiah:hover {
+            opacity: 0.8;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const idToUrlMap = {
+                "brosur-promo-4-hari": "/p4h/",
+                "brosur-promo-susu-perlengkapan-balita": "/pspb/",
+                "brosur-promosi-berhadiah": "/promosi-berhadiah/"
+            };
+
+            Object.keys(idToUrlMap).forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener("click", function() {
+                        window.open(idToUrlMap[id], "_blank");
+                    });
+                }
+            });
+        });
+    </script><style>
+        #super-hemat {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#super-hemat");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/super-hemat/", "_blank");
+                });
+            });
+        });
+    </script>			<script>
+				const lazyloadRunObserver = () => {
+					const lazyloadBackgrounds = document.querySelectorAll( `.e-con.e-parent:not(.e-lazyloaded)` );
+					const lazyloadBackgroundObserver = new IntersectionObserver( ( entries ) => {
+						entries.forEach( ( entry ) => {
+							if ( entry.isIntersecting ) {
+								let lazyloadBackground = entry.target;
+								if( lazyloadBackground ) {
+									lazyloadBackground.classList.add( 'e-lazyloaded' );
+								}
+								lazyloadBackgroundObserver.unobserve( entry.target );
+							}
+						});
+					}, { rootMargin: '200px 0px 200px 0px' } );
+					lazyloadBackgrounds.forEach( ( lazyloadBackground ) => {
+						lazyloadBackgroundObserver.observe( lazyloadBackground );
+					} );
+				};
+				const events = [
+					'DOMContentLoaded',
+					'elementor/lazyload/observe',
+				];
+				events.forEach( ( event ) => {
+					document.addEventListener( event, lazyloadRunObserver );
+				} );
+			</script>
+			<link rel='stylesheet' id='elementor-post-1259-css' href='https://www.indomaret.co.id/wp-content/uploads/elementor/css/post-1259.css?ver=1794211290' type='text/css' media='all' />
+<style id='core-block-supports-inline-css' type='text/css'>
+/**
+ * Core styles: block-supports
+ */
+
+</style>
+<script type="text/javascript" id="real3d-flipbook-forntend-js-extra">
+/* <![CDATA[ */
+var r3d_frontend = {"rootFolder":"https:\/\/www.indomaret.co.id\/wp-content\/plugins\/real3d-flipbook-lite\/","version":"4.11.4"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/real3d-flipbook-lite/js/frontend.js?ver=4.11.4" id="real3d-flipbook-forntend-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/cf7-popups//views/assets/js/sweetalert2.min.js?ver=1.2.0" id="sweetalert2-js"></script>
+<script type="text/javascript" id="cf7-popups-frontend-js-extra">
+/* <![CDATA[ */
+var cf7_popups_val = {"msg1":"Validation Error","msg2":"One or more field validation error","msg3":"Error","msg4":"Failed to send email because possible spam activity has been detected.","msg5":"Failed to send email.","msg6":"Email Sent","msg7":"Thank you for your message. It has been sent."};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/cf7-popups//views/assets/js/cf7-popups.js?ver=1.2.0" id="cf7-popups-frontend-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-includes/js/dist/hooks.js?ver=be67dc331e61e06d52fa" id="wp-hooks-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-includes/js/dist/i18n.js?ver=5edc734adb78e0d7d00e" id="wp-i18n-js"></script>
+<script type="text/javascript" id="wp-i18n-js-after">
+/* <![CDATA[ */
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/contact-form-7/includes/swv/js/index.js?ver=6.0.4" id="swv-js"></script>
+<script type="text/javascript" id="contact-form-7-js-translations">
+/* <![CDATA[ */
+( function( domain, translations ) {
+	var localeData = translations.locale_data[ domain ] || translations.locale_data.messages;
+	localeData[""].domain = domain;
+	wp.i18n.setLocaleData( localeData, domain );
+} )( "contact-form-7", {"translation-revision-date":"2024-02-23 08:09:07+0000","generator":"GlotPress\/4.0.1","domain":"messages","locale_data":{"messages":{"":{"domain":"messages","plural-forms":"nplurals=2; plural=n > 1;","lang":"id"},"Error:":["Eror:"]}},"comment":{"reference":"includes\/js\/index.js"}} );
+/* ]]> */
+</script>
+<script type="text/javascript" id="contact-form-7-js-before">
+/* <![CDATA[ */
+var wpcf7 = {
+    "api": {
+        "root": "https:\/\/www.indomaret.co.id\/wp-json\/",
+        "namespace": "contact-form-7\/v1"
+    }
+};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/contact-form-7/includes/js/index.js?ver=6.0.4" id="contact-form-7-js"></script>
+<script type="text/javascript" id="embedpress-front-js-extra">
+/* <![CDATA[ */
+var eplocalize = {"ajaxurl":"https:\/\/www.indomaret.co.id\/wp-admin\/admin-ajax.php","is_pro_plugin_active":"","nonce":"d473ac55ed"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/embedpress/assets/js/front.js?ver=4.2.9" id="embedpress-front-js"></script>
+<script type="text/javascript" id="analytify_track_miscellaneous-js-extra">
+/* <![CDATA[ */
+var miscellaneous_tracking_options = {"ga_mode":"ga4","tracking_mode":"gtag","track_404_page":{"should_track":"off","is_404":false,"current_url":"https:\/\/www.indomaret.co.id\/promosi\/"},"track_js_error":"off","track_ajax_error":"off"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/wp-analytify/assets/js/miscellaneous-tracking.js?ver=7.0.1" id="analytify_track_miscellaneous-js"></script>
+<script data-no-delay-js data-no-optimize="1" data-no-minify="1" type="text/javascript" id="safelayout-cute-preloader-script-js-before">
+/* <![CDATA[ */
+var slplPreLoader = {"showingLoader":true,"pageLoaded":false,"minShowTime":2000,"maxShowTime":9000,"showCloseButton":0}
+/* ]]> */
+</script>
+<script data-no-delay-js data-no-optimize="1" data-no-minify="1" type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/safelayout-cute-preloader/assets/js/safelayout-cute-preloader.min.js?ver=2.1.3" id="safelayout-cute-preloader-script-js"></script>
+<script type="text/javascript" id="wpcf7cf-scripts-js-extra">
+/* <![CDATA[ */
+var wpcf7cf_global_settings = {"ajaxurl":"https:\/\/www.indomaret.co.id\/wp-admin\/admin-ajax.php"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/cf7-conditional-fields/js/scripts.js?ver=2.5.9" id="wpcf7cf-scripts-js"></script>
+<script type="text/javascript" id="ivory-search-scripts-js-extra">
+/* <![CDATA[ */
+var IvorySearchVars = {"is_analytics_enabled":"1"};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/add-search-to-menu/public/js/ivory-search.min.js?ver=5.5.9" id="ivory-search-scripts-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/header-footer-elementor/inc/js/frontend.js?ver=2.2.0" id="hfe-frontend-js-js"></script>
+<script type="text/javascript" id="gt_widget_script_56784996-js-before">
+/* <![CDATA[ */
+window.gtranslateSettings = /* document.write */ window.gtranslateSettings || {};window.gtranslateSettings['56784996'] = {"default_language":"id","languages":["en","id"],"url_structure":"none","wrapper_selector":"#gt-wrapper-56784996","custom_css":".gtranslate_wrapper {\r\n    display: flex;\r\n    align-items: center;\r\n    flex-direction: row-reverse;\r\n\r\n    .glink {\r\n        font-family: Montserrat;\r\n        font-weight: 700;\r\n        font-size: 12px;\r\n        line-height: 14px;\r\n        color: #FFFFFF;\r\n        padding: 0 4px;\r\n    }\r\n\r\n    .glink:nth-child(2) {\r\n        border-right: 2px solid #FFFFFF;\r\n    }\r\n\r\n    .glink.gt-current-lang {\r\n        font-weight: 900 !important;\r\n    }\r\n}","horizontal_position":"inline","flags_location":"\/wp-content\/plugins\/gtranslate\/flags\/"};
+/* ]]> */
+</script><script src="https://www.indomaret.co.id/wp-content/plugins/gtranslate/js/lc.js?ver=6.8.3" data-no-optimize="1" data-no-minify="1" data-gt-orig-url="/promosi/" data-gt-orig-domain="www.indomaret.co.id" data-gt-widget-id="56784996" defer></script><script type="text/javascript" id="gt_widget_script_32890203-js-before">
+/* <![CDATA[ */
+window.gtranslateSettings = /* document.write */ window.gtranslateSettings || {};window.gtranslateSettings['32890203'] = {"default_language":"id","languages":["en","id"],"url_structure":"none","wrapper_selector":"#gt-wrapper-32890203","custom_css":".gtranslate_wrapper {\r\n    display: flex;\r\n    align-items: center;\r\n    flex-direction: row-reverse;\r\n\r\n    .glink {\r\n        font-family: Montserrat;\r\n        font-weight: 700;\r\n        font-size: 12px;\r\n        line-height: 14px;\r\n        color: #FFFFFF;\r\n        padding: 0 4px;\r\n    }\r\n\r\n    .glink:nth-child(2) {\r\n        border-right: 2px solid #FFFFFF;\r\n    }\r\n\r\n    .glink.gt-current-lang {\r\n        font-weight: 900 !important;\r\n    }\r\n}","horizontal_position":"inline","flags_location":"\/wp-content\/plugins\/gtranslate\/flags\/"};
+/* ]]> */
+</script><script src="https://www.indomaret.co.id/wp-content/plugins/gtranslate/js/lc.js?ver=6.8.3" data-no-optimize="1" data-no-minify="1" data-gt-orig-url="/promosi/" data-gt-orig-domain="www.indomaret.co.id" data-gt-widget-id="32890203" defer></script><script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/elementor/assets/js/webpack.runtime.js?ver=3.28.4" id="elementor-webpack-runtime-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/elementor/assets/js/frontend-modules.js?ver=3.28.4" id="elementor-frontend-modules-js"></script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-includes/js/jquery/ui/core.js?ver=1.13.3" id="jquery-ui-core-js"></script>
+<script type="text/javascript" id="elementor-frontend-js-before">
+/* <![CDATA[ */
+var elementorFrontendConfig = {"environmentMode":{"edit":false,"wpPreview":false,"isScriptDebug":true},"i18n":{"shareOnFacebook":"Bagikan di Facebook","shareOnTwitter":"Bagikan di Twitter","pinIt":"Buat Pin","download":"Unduh","downloadImage":"Unduh gambar","fullscreen":"Layar Penuh","zoom":"Perbesar","share":"Bagikan","playVideo":"Putar Video","previous":"Sebelumnya","next":"Selanjutnya","close":"Tutup","a11yCarouselPrevSlideMessage":"Slide sebelumnya","a11yCarouselNextSlideMessage":"Slide selanjutnya","a11yCarouselFirstSlideMessage":"This is the first slide","a11yCarouselLastSlideMessage":"This is the last slide","a11yCarouselPaginationBulletMessage":"Go to slide"},"is_rtl":false,"breakpoints":{"xs":0,"sm":480,"md":768,"lg":1025,"xl":1440,"xxl":1600},"responsive":{"breakpoints":{"mobile":{"label":"Mobile Portrait","value":767,"default_value":767,"direction":"max","is_enabled":true},"mobile_extra":{"label":"Mobile Landscape","value":880,"default_value":880,"direction":"max","is_enabled":false},"tablet":{"label":"Tablet Portrait","value":1024,"default_value":1024,"direction":"max","is_enabled":true},"tablet_extra":{"label":"Tablet Landscape","value":1200,"default_value":1200,"direction":"max","is_enabled":false},"laptop":{"label":"Laptop","value":1366,"default_value":1366,"direction":"max","is_enabled":false},"widescreen":{"label":"Layar lebar","value":2400,"default_value":2400,"direction":"min","is_enabled":false}},"hasCustomBreakpoints":false},"version":"3.28.4","is_static":false,"experimentalFeatures":{"e_font_icon_svg":true,"additional_custom_breakpoints":true,"container":true,"e_local_google_fonts":true,"nested-elements":true,"editor_v2":true,"e_element_cache":true,"home_screen":true,"launchpad-checklist":true},"urls":{"assets":"https:\/\/www.indomaret.co.id\/wp-content\/plugins\/elementor\/assets\/","ajaxurl":"https:\/\/www.indomaret.co.id\/wp-admin\/admin-ajax.php","uploadUrl":"https:\/\/www.indomaret.co.id\/wp-content\/uploads"},"nonces":{"floatingButtonsClickTracking":"24527b1d18"},"swiperClass":"swiper","settings":{"page":[],"editorPreferences":[]},"kit":{"body_background_background":"classic","active_breakpoints":["viewport_mobile","viewport_tablet"],"global_image_lightbox":"yes","lightbox_enable_counter":"yes","lightbox_enable_fullscreen":"yes","lightbox_enable_zoom":"yes","lightbox_enable_share":"yes","lightbox_title_src":"title","lightbox_description_src":"description"},"post":{"id":1136,"title":"Promosi%20%E2%80%93%20Indomaret","excerpt":"","featuredImage":false}};
+/* ]]> */
+</script>
+<script type="text/javascript" src="https://www.indomaret.co.id/wp-content/plugins/elementor/assets/js/frontend.js?ver=3.28.4" id="elementor-frontend-js"></script>
+<script data-cfasync="false"> var dFlipLocation = "https://www.indomaret.co.id/wp-content/plugins/3d-flipbook-dflip-lite/assets/"; var dFlipWPGlobal = {"text":{"toggleSound":"Turn on\/off Sound","toggleThumbnails":"Toggle Thumbnails","toggleOutline":"Toggle Outline\/Bookmark","previousPage":"Previous Page","nextPage":"Next Page","toggleFullscreen":"Toggle Fullscreen","zoomIn":"Zoom In","zoomOut":"Zoom Out","toggleHelp":"Toggle Help","singlePageMode":"Single Page Mode","doublePageMode":"Double Page Mode","downloadPDFFile":"Download PDF File","gotoFirstPage":"Goto First Page","gotoLastPage":"Goto Last Page","share":"Share","mailSubject":"I wanted you to see this FlipBook","mailBody":"Check out this site {{url}}","loading":"DearFlip: Loading "},"viewerType":"flipbook","moreControls":"download,pageMode,startPage,endPage,sound","hideControls":"","scrollWheel":"false","backgroundColor":"#777","backgroundImage":"","height":"auto","paddingLeft":"20","paddingRight":"20","controlsPosition":"bottom","duration":800,"soundEnable":"true","enableDownload":"true","showSearchControl":"false","showPrintControl":"false","enableAnnotation":false,"enableAnalytics":"false","webgl":"true","hard":"none","maxTextureSize":"1600","rangeChunkSize":"524288","zoomRatio":1.5,"stiffness":3,"pageMode":"0","singlePageMode":"0","pageSize":"0","autoPlay":"false","autoPlayDuration":5000,"autoPlayStart":"false","linkTarget":"2","sharePrefix":"flipbook-"};</script></body>
+</html>
+<main class="page-content ">
+    <div class="container-page">
+                        
+        <div class="page-body class="post-1136 page type-page status-publish hentry"">
+                            		<div data-elementor-type="wp-page" data-elementor-id="1136" class="elementor elementor-1136">
+				<div class="elementor-element elementor-element-bcd540b header-page e-flex e-con-boxed e-con e-parent" data-id="bcd540b" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+					<div class="e-con-inner">
+				<div class="elementor-element elementor-element-63e3c83 elementor-invisible elementor-widget elementor-widget-heading" data-id="63e3c83" data-element_type="widget" data-settings="{&quot;_animation&quot;:&quot;fadeInLeft&quot;}" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h1 class="elementor-heading-title elementor-size-default">Promosi</h1>				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-69cc6a8 promotion-page top-section e-flex e-con-boxed e-con e-parent" data-id="69cc6a8" data-element_type="container" id="super-hemat" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-7f34924 e-con-full e-flex elementor-invisible e-con e-child" data-id="7f34924" data-element_type="container" data-settings="{&quot;animation&quot;:&quot;fadeInLeft&quot;}">
+				<div class="elementor-element elementor-element-aadce97 elementor-widget elementor-widget-image" data-id="aadce97" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img fetchpriority="high" decoding="async" width="800" height="510" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/SuperHemat-Thumbnail-Website-800x510-1.png" class="attachment-full size-full wp-image-241987" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/SuperHemat-Thumbnail-Website-800x510-1.png 800w, https://www.indomaret.co.id/wp-content/uploads/2025/08/SuperHemat-Thumbnail-Website-800x510-1-300x191.png 300w, https://www.indomaret.co.id/wp-content/uploads/2025/08/SuperHemat-Thumbnail-Website-800x510-1-768x490.png 768w" sizes="(max-width: 800px) 100vw, 800px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-35e481c e-con-full e-flex e-con e-child" data-id="35e481c" data-element_type="container">
+				<div class="elementor-element elementor-element-4d7b77a elementor-invisible elementor-widget elementor-widget-image" data-id="4d7b77a" data-element_type="widget" data-settings="{&quot;_animation&quot;:&quot;fadeInRight&quot;}" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img decoding="async" src="/wp-content/uploads/2025/02/Frame-7.png" title="" alt="" loading="lazy" />															</div>
+				</div>
+				<div class="elementor-element elementor-element-4fbbea6 elementor-invisible elementor-widget elementor-widget-heading" data-id="4fbbea6" data-element_type="widget" data-settings="{&quot;_animation&quot;:&quot;fadeInRight&quot;,&quot;_animation_delay&quot;:100}" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Super Hemat</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-b8b37f7 elementor-invisible elementor-widget elementor-widget-text-editor" data-id="b8b37f7" data-element_type="widget" data-settings="{&quot;_animation&quot;:&quot;fadeInRight&quot;,&quot;_animation_delay&quot;:200}" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode: 12 &#8211; 25 November 2026</p><p> </p><p>Promosi beragam <strong>Super Hemat</strong>,</p><p>Buat Belanja di Indomaret, Pilihan paling tepat!</p><p>Temukan beragam penawaran spesial untuk kebutuhan harian Anda. Mulai dari kebutuhan pokok, produk rumah tangga, hingga barang elektronik. Nikmati diskon spesial produk terpilih, promo cashback &amp; voucher belanja, harga heboh setiap hari, serta gratis ongkir untuk pembelian online. </p>								</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-cf90e53 promotion-page catalog-section e-flex e-con-boxed e-con e-parent" data-id="cf90e53" data-element_type="container">
+					<div class="e-con-inner">
+				<div class="elementor-element elementor-element-e5d236e elementor-invisible elementor-widget elementor-widget-image" data-id="e5d236e" data-element_type="widget" data-settings="{&quot;_animation&quot;:&quot;fadeInLeft&quot;}" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img decoding="async" src="/wp-content/uploads/2025/02/Frame-7.png" title="" alt="" loading="lazy" />															</div>
+				</div>
+				<div class="elementor-element elementor-element-42dd597 elementor-invisible elementor-widget elementor-widget-heading" data-id="42dd597" data-element_type="widget" data-settings="{&quot;_animation&quot;:&quot;fadeIn&quot;}" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Katalog Promosi Indomaret</h2>				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-9398964 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="9398964" data-element_type="container" id="brosur-paling-murah" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-1996803 e-con-full promotion-media e-flex e-con e-child" data-id="1996803" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-dd21e2a elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="dd21e2a" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PalingMurah-1.png" class="attachment-full size-full wp-image-241921" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PalingMurah-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PalingMurah-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-8f675e9 e-con-full promotion-content e-flex e-con e-child" data-id="8f675e9" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-d2e05f0 e-con-full e-flex e-con e-child" data-id="d2e05f0" data-element_type="container">
+				<div class="elementor-element elementor-element-0f2068a elementor-widget elementor-widget-heading" data-id="0f2068a" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Paling Murah</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-f6c5885 elementor-widget elementor-widget-text-editor" data-id="f6c5885" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 19 &#8211; 25 November 2026</p><p> </p><p>Belanja enggak bikin kantong gerah?<br />Indomaret punya yang Paling Murah!</p><p>Dapatkan produk pilihan berkualitas dengan harga paling murah di Indomaret! Barang yang masuk ke Program Promosi ini bisa ditemukan di meja Kasir Indomaret, maupun Online di Klik Indomaret!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-c0a1e15 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="c0a1e15" data-element_type="container" id="hemat-minggu-ini" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-4e19b25 e-con-full promotion-media e-flex e-con e-child" data-id="4e19b25" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-c7871c9 elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="c7871c9" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_HMI-1.png" class="attachment-full size-full wp-image-241922" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_HMI-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_HMI-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-654b0fd e-con-full promotion-content e-flex e-con e-child" data-id="654b0fd" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-4a58c3d e-con-full e-flex e-con e-child" data-id="4a58c3d" data-element_type="container">
+				<div class="elementor-element elementor-element-a190031 elementor-widget elementor-widget-heading" data-id="a190031" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Hemat Minggu Ini</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-edae6c0 elementor-widget elementor-widget-text-editor" data-id="edae6c0" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 19 &#8211; 25 November 2026</p><p> </p><p>Promosi Hemat Minggu Ini,<br />Bikin belanja lagi dan lagi!</p><p>Promosi produk unggulan terbaik di Minggu ini! Mulai dari kebutuhan pokok, jajanan, minuman dan beragam produk lainnya, bisa anda dapatkan dengan harga yang lebih kompetitif! Temukan lebih banyak promosi Hemat Minggu Ini di rak khusus, di toko Indomaret dan Klik Indomaret!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-4ccf5ef promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="4ccf5ef" data-element_type="container" id="brosur-tebus-heboh" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-fae16d8 e-con-full promotion-media e-flex e-con e-child" data-id="fae16d8" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-eec27eb elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="eec27eb" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_TebusHeboh-1.png" class="attachment-full size-full wp-image-241923" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_TebusHeboh-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_TebusHeboh-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-4c854ab e-con-full promotion-content e-flex e-con e-child" data-id="4c854ab" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-37eb052 e-con-full e-flex e-con e-child" data-id="37eb052" data-element_type="container">
+				<div class="elementor-element elementor-element-fb88690 elementor-widget elementor-widget-heading" data-id="fb88690" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Tebus Heboh</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-6ddbf54 elementor-widget elementor-widget-text-editor" data-id="6ddbf54" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 12 &#8211; 25 November 2026</p><p> </p><p>Belanja Minimal Lima Puluh Ribu Rupiah,<br />Tebus Heboh Produk Pilihan Lebih Murah!</p><p>Dengan belanja minimal Rp. 50.000,- , maka anda bisa mendapatkan item-item unggulan dengan potongan harga yang menarik! Anda bisa mendapatkan item tersebut dengan harga Rp. 5.000,- ; Rp. 10.000,-; atau Rp. 15.000,-</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-03285c0 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="03285c0" data-element_type="container" id="brosur-promosi-berhadiah" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-2adf7f3 e-con-full promotion-media e-flex e-con e-child" data-id="2adf7f3" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-da3e07a elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="da3e07a" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PromosiBerhadiah-1.png" class="attachment-full size-full wp-image-241924" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PromosiBerhadiah-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PromosiBerhadiah-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-6cdb713 e-con-full promotion-content e-flex e-con e-child" data-id="6cdb713" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-64ca65a e-con-full e-flex e-con e-child" data-id="64ca65a" data-element_type="container">
+				<div class="elementor-element elementor-element-7a2706e elementor-widget elementor-widget-heading" data-id="7a2706e" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Promosi Berhadiah<span style="font-family: Montserrat, sans-serif;"></span></h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-7b3698c elementor-widget elementor-widget-text-editor" data-id="7b3698c" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 12 &#8211; 25 November 2026</p><p> </p><p>Belanja kebutuhan sendiri atau rumah</p><p>Dapatkan lebih, dengan Promosi Berhadiah!</p><p>Selalu dapat lebih banyak, dengan pasti dapat produk pilihan gratis dari Promosi Berhadiah!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-5eb6291 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="5eb6291" data-element_type="container" id="brosur-promo-4-hari" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-1534f9c e-con-full promotion-media e-flex e-con e-child" data-id="1534f9c" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-a2645fd elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="a2645fd" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Promo4Hari-1.png" class="attachment-full size-full wp-image-241925" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Promo4Hari-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Promo4Hari-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-012e536 e-con-full promotion-content e-flex e-con e-child" data-id="012e536" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-4cd9d5d e-con-full e-flex e-con e-child" data-id="4cd9d5d" data-element_type="container">
+				<div class="elementor-element elementor-element-438baa1 elementor-widget elementor-widget-heading" data-id="438baa1" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Promo 4 Hari (Kamis, Jumat, Sabtu, Minggu)<span style="font-family: Montserrat, sans-serif;"></span></h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-92fc513 elementor-widget elementor-widget-text-editor" data-id="92fc513" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 19 &#8211; 22 November 2026</p><p> </p><p>Kamis, Jumat, Sabtu, Minggu</p><p>Promo 4 Hari, Bikin untung belanjamu!</p><p>Promo 4 Hari selalu hadir di setiap minggu, temukan potongan harga di produk-produk unggul pilihan, yang bikin belanja untung maksimal!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-be34e75 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="be34e75" data-element_type="container" id="brosur-promo-susu-perlengkapan-balita" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-de6e19c e-con-full promotion-media e-flex e-con e-child" data-id="de6e19c" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-891eb3d elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="891eb3d" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PSPB-1.png" class="attachment-full size-full wp-image-241926" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PSPB-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_PSPB-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-86bafda e-con-full promotion-content e-flex e-con e-child" data-id="86bafda" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-fcd0b7e e-con-full e-flex e-con e-child" data-id="fcd0b7e" data-element_type="container">
+				<div class="elementor-element elementor-element-6db2f02 elementor-widget elementor-widget-heading" data-id="6db2f02" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Promo Susu &amp; Perlengkapan Balita<span style="font-family: Montserrat, sans-serif;"></span></h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-c62130a elementor-widget elementor-widget-text-editor" data-id="c62130a" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 12 &#8211; 25 November 2026</p><p> </p><p>Harga Dipotong, Makin Digoyang</p><p>Susu nikmat, dan barang terbaik untuk Balita Tersayang</p><p>Produk Susu &amp; Perlengkapan Balita pasti ada diskon di Indomaret! Temukan kebutuhan balita dengan penawaran harga terbaik di Indomaret, dan Klik Indomaret!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-c1a84e9 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="c1a84e9" data-element_type="container" id="harga-khusus-member" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-ae95281 e-con-full promotion-media e-flex e-con e-child" data-id="ae95281" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-5d52946 elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="5d52946" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_HargaKhususMember-1.png" class="attachment-full size-full wp-image-241927" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_HargaKhususMember-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_HargaKhususMember-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-4c11977 e-con-full promotion-content e-flex e-con e-child" data-id="4c11977" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-5c85c49 e-con-full e-flex e-con e-child" data-id="5c85c49" data-element_type="container">
+				<div class="elementor-element elementor-element-439410a elementor-widget elementor-widget-heading" data-id="439410a" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Harga Khusus Member</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-61a1f4f elementor-widget elementor-widget-text-editor" data-id="61a1f4f" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Periode : 19 &#8211; 25 November 2026</p><p> </p><p>Harga Khusus Member, Bikin Makin Untung,<br />Lanjut Belanja, Terus bersambung!</p><p>Selalu ada diskon istimewa yang eksklusif khusus Member Indomaret Poinku! Dengan harga yang tentu sangat</p><p>menarik, member juga bisa mendapatkan stamp, atau poin cash untuk ditukarkan kembali menjadi keuntungan-keuntungan spesial! Jadi member Indomaret Poinku sekarang, dan dapatkan segala keuntungan eksklusifnya!</p>								</div>
+				</div>
+				</div>
+				</div>
+				<div class="elementor-element elementor-element-8bd6593 elementor-widget elementor-widget-image" data-id="8bd6593" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="60" height="3" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/Frame-7.png" class="attachment-large size-large wp-image-148" alt="" />															</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-8c9f2b9 promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="8c9f2b9" data-element_type="container" id="promo-bank-ewallet" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-f7d7a47 e-con-full promotion-media e-flex e-con e-child" data-id="f7d7a47" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-9c61f3c elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="9c61f3c" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Bank-ewallet.png" class="attachment-full size-full wp-image-241928" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Bank-ewallet.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Bank-ewallet-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-d4dca17 e-con-full promotion-content e-flex e-con e-child" data-id="d4dca17" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-1438d6b e-con-full e-flex e-con e-child" data-id="1438d6b" data-element_type="container">
+				<div class="elementor-element elementor-element-c224820 elementor-widget elementor-widget-heading" data-id="c224820" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Promo Bank & E-Wallet</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-9f763a9 elementor-widget elementor-widget-text-editor" data-id="9f763a9" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p>Pembayaran dengan E-Wallet &amp; Perbankan,</p><p>Bikin belanja makin menguntungkan!</p><p>Indomaret telah bekerjasama dengan banyak Bank maupun dompet digital (E-Wallet) se-Indonesia. Gunakan berbagai macam E-Wallet maupun kartu debit, dan kredit untuk pembayaran, dan, temukan kemudahan dan diskon istimewa serta promosi eksklusif! Membuat pengalaman belanja anda, semakin mudah dan hemat!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+		<div class="elementor-element elementor-element-bad6b8e promotion-page promo-item e-flex e-con-boxed elementor-invisible e-con e-parent" data-id="bad6b8e" data-element_type="container" id="pulsanya-sekalian-kakak" data-settings="{&quot;background_background&quot;:&quot;classic&quot;,&quot;animation&quot;:&quot;zoomIn&quot;}">
+					<div class="e-con-inner">
+		<div class="elementor-element elementor-element-325b105 e-con-full promotion-media e-flex e-con e-child" data-id="325b105" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+				<div class="elementor-element elementor-element-814aba1 elementor-widget__width-initial elementor-widget-tablet__width-initial elementor-widget-mobile__width-initial elementor-widget elementor-widget-image" data-id="814aba1" data-element_type="widget" data-widget_type="image.default">
+				<div class="elementor-widget-container">
+															<img loading="lazy" decoding="async" width="648" height="534" src="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Pulsa-1.png" class="attachment-full size-full wp-image-241929" alt="" srcset="https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Pulsa-1.png 648w, https://www.indomaret.co.id/wp-content/uploads/2025/08/Thumbnail-Promosi-Website_Pulsa-1-300x247.png 300w" sizes="(max-width: 648px) 100vw, 648px" />															</div>
+				</div>
+				</div>
+		<div class="elementor-element elementor-element-8df9e07 e-con-full promotion-content e-flex e-con e-child" data-id="8df9e07" data-element_type="container" data-settings="{&quot;background_background&quot;:&quot;classic&quot;}">
+		<div class="elementor-element elementor-element-2b42a04 e-con-full e-flex e-con e-child" data-id="2b42a04" data-element_type="container">
+				<div class="elementor-element elementor-element-59e8b1f elementor-widget elementor-widget-heading" data-id="59e8b1f" data-element_type="widget" data-widget_type="heading.default">
+				<div class="elementor-widget-container">
+					<h2 class="elementor-heading-title elementor-size-default">Pulsanya Sekalian Kakak</h2>				</div>
+				</div>
+				<div class="elementor-element elementor-element-31585c8 elementor-widget elementor-widget-text-editor" data-id="31585c8" data-element_type="widget" data-widget_type="text-editor.default">
+				<div class="elementor-widget-container">
+									<p class="u-align-left u-custom-font u-font-montserrat u-text u-text-palette-5-dark-2 u-text-14">Sekalian Isi Pulsanya, Kak?</p><p>Habis belanja apa aja, baiknya cek pulsa dan kuota sebelum pergi! Di Indomaret, kami melayani dan telah terintegrasi dengan provider jaringan telepon selular, Jaringan WiFi, internet, dan berbagai kebutuhan digitalmu! Cek juga promosi menarik untuk top up, atau bayar langganan internet dengan mudah dan hemat di Indomaret!</p>								</div>
+				</div>
+				</div>
+				</div>
+					</div>
+				</div>
+				</div>
+		                    </div>
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="grid-container">
+            <div class="footer-item column-left">
+                <img class="title-logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/idm-main-logo.png"
+                    alt="Indomaret LOGO">
+                <h4 class="title">PT Indomarco Prismatama</h4>
+                <p class="office-name title notranslate">Kantor Pusat</p>
+                <p class="address notranslate">Menara Indomaret:<br>Jl. Pantai Indah Kapuk Boulevard, No 1,<br>Pantai Indah Kapuk,
+                    Jakarta Utara, 14470</p>
+                <p class="copyright">Copyright &copy; 2004 -
+                    2026 Indomaret. All Rights Reserved.
+                </p>
+            </div>
+
+            <div class="footer-item column-center">
+                <h4 class="title notranslate">Hubungi Kami</h4>
+                <div class="contact-category">
+                    <div class="wrap">
+                        <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/cs.png"
+                            alt="CS">
+                    </div>
+                    <div class="content">
+                        <p class="content-title">Layanan Pelanggan</p>
+                        <p class="content-desc">1500 280</p>
+                    </div>
+                </div>
+                <a class="contact-category" href="https://api.whatsapp.com/send/?phone=628111500280&text=Halo+Indomaret+!&type=phone_number&app_absent=0" target="_blank">
+                    <div class="wrap">
+                        <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/wa.png"
+                            alt="WA">
+                    </div>
+                    <div class="content">
+                        <p class="content-title">WhatsApp</p>
+                        <p class="content-desc">0811 1500 280</p>
+                    </div>
+                </a>
+                <a class="contact-category" href="/cdn-cgi/l/email-protection#e68d898892878da68f8882898b87948392c88589c88f82" target="_blank">
+                    <div class="wrap">
+                        <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/email.png"
+                            alt="Email">
+                    </div>
+                    <div class="content">
+                        <p class="content-title notranslate">Email</p>
+                        <p class="content-desc notranslate"><span class="__cf_email__" data-cfemail="395256574d58527950575d5654584b5c4d175a5617505d">[email&#160;protected]</span></p>
+                    </div>
+                </a>
+                <div class="contact-category">
+                    <div class="wrap">
+                        <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/sms.png"
+                            alt="SMS">
+                    </div>
+                    <div class="content">
+                        <p class="content-title">SMS</p>
+                        <p class="content-desc">0811 1500 280</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-item column-right">
+                <div class="social-media">
+                    <h4 class="title notranslate">Media Sosial</h4>
+                    <div class="content">
+                        <a class="soc-med-item" href="https://www.facebook.com/IndomaretMudahdanHemat/" target="_blank">
+                            <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/soc-med/fb.png" alt="FB">
+                            <p class="soc-med-name">Indomaret</p>
+                        </a>
+                        <a class="soc-med-item" href="https://www.youtube.com/indomaretcoid" target="_blank">
+                            <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/soc-med/yt.png" alt="YT">
+                            <p class="soc-med-name">Indomaret</p>
+                        </a>
+                        <a class="soc-med-item" href="https://www.tiktok.com/@indomaretofficial" target="_blank">
+                            <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/soc-med/tiktok.png" alt="Tiktok">
+                            <p class="soc-med-name">@Indomaretofficial</p>
+                        </a>
+                        <a class="soc-med-item" href="https://www.instagram.com/indomaret" target="_blank">
+                            <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/soc-med/ig.png" alt="IG">
+                            <p class="soc-med-name">@indomaret</p>
+                        </a>
+                        <a class="soc-med-item" href="https://x.com/indomaret" target="_blank">
+                            <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/soc-med/x.png" alt="X">
+                            <p class="soc-med-name">Indomaret</p>
+                        </a>
+                        <a class="soc-med-item" href="https://www.threads.net/@indomaret" target="_blank">
+                            <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/soc-med/thread.png" alt="Thread">
+                            <p class="soc-med-name">@Indomaret</p>
+                        </a>
+                    </div>
+                </div>
+                <div class="apps">
+                    <h4 class="title notranslate">Aplikasi Indomaret</h4>
+                    <div class="content">
+                        <div class="footer-item">
+                            <a id="klikindomaret-link" href="https://www.klikindomaret.com/" target="_blank">
+                                <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/klik-idm.png" alt="KlikIDM">
+                            </a>
+                        </div>
+                        <div class="footer-item">
+                            <a id="poinku-link" href="https://indomaretpoinku.com/" target="_blank">
+                                <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/poinku.png" alt="PoinKu">
+                            </a>
+                        </div>
+                        <div class="footer-item">
+                            <a id="isaku-link" href="https://www.i-saku.com/" target="_blank">
+                                <img class="logo-isaku" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/isaku.png" alt="iSaku">
+                            </a>
+                        </div>
+                        <div class="footer-item">
+                            <a id="indopaket-link" href="https://www.indopaket.co.id/" target="_blank">
+                                <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/02/logos/indopaket.png" alt="Indopaket">
+                            </a>
+                        </div>
+                        <div class="download-app">
+                             <a class="download-item">
+                                <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/05/Download_on_the_App_Store_logo-scaled.png" alt="DownloadIOS">
+                            </a>
+                            <a class="download-item">
+                                <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/05/googlePlay-scaled.png" alt="DownloadAOS">
+                            </a>
+                            <a class="download-item">
+                                <img class="logo" src="https://www.indomaret.co.id/wp-content/uploads/2025/05/huawei-scaled.png" alt="DownloadHuawei">
+                            </a>                        
+                     </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+(function() {
+  const detectDevTools = () => {
+    const threshold = 160;
+    return (
+      window.outerWidth - window.innerWidth > threshold ||
+      window.outerHeight - window.innerHeight > threshold
+    );
+  };
+
+  const showWarning = () => {
+    console.clear();
+    console.warn('%c?? Hai, kelihatannya kamu membuka Developer Tools.', 'color: dodgerblue; font-size: 20px; font-weight: bold;');
+    console.log('%cHarap berhati-hati saat menempelkan kode di sini.', 'color: orange; font-size: 16px;');
+    console.log('%cJika seseorang menyuruhmu menempelkan sesuatu, bisa jadi itu penipuan.', 'color: tomato; font-size: 14px;');
+    console.log('%cTetap aman dan nikmati kunjunganmu', 'color: green; font-size: 14px;');
+  };
+
+  setInterval(() => {
+    if (detectDevTools()) showWarning();
+  }, 1000);
+})();
+
+
+
+    function detectOS() {
+        const ua = navigator.userAgent || navigator.vendor || window.opera;
+        if (/huawei/i.test(ua)) return "huawei";
+        if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return "ios";
+        if (/Macintosh/.test(ua) && 'ontouchend' in document) return "ios";
+        if (/Macintosh/.test(ua)) return "ios";
+        if (/android/i.test(ua)) return "android";
+        return "android";
+    }
+
+    const os = detectOS();
+
+    const links = {
+        klikindomaret: {
+            android: "https://play.google.com/store/apps/details?id=com.indomaret.klikindomaret",
+            ios: "https://apps.apple.com/id/app/klik-indomaret/id1103133871",
+            huawei: "https://appgallery.huawei.com/app/C102558207"
+        },
+        poinku: {
+            android: "https://play.google.com/store/apps/details?id=mypoin.indomaret.android",
+            ios: "https://apps.apple.com/id/app/indomaret-poinku/id1280783271",
+            huawei: "https://appgallery.huawei.com/app/C104584161"
+        },
+        isaku: {
+            android: "https://play.google.com/store/apps/details?id=com.isaku.app",
+            ios: "https://apps.apple.com/id/app/i-saku-bayar-dan-transfer/id1289150756",
+            huawei: "https://appgallery.huawei.com/app/C102093733"
+        },
+        indopaket: {
+            android: "https://play.google.com/store/apps/details?id=app.indopaket",
+            ios: "https://apps.apple.com/id/app/indopaket/id1396348727",
+            huawei: "#"
+        }
+    };
+
+   document.addEventListener("DOMContentLoaded", function () {
+    const klik = document.getElementById('klikindomaret-link');
+    const poinku = document.getElementById('poinku-link');
+    const isaku = document.getElementById('isaku-link');
+    const indopaket = document.getElementById('indopaket-link');
+
+    if (klik) klik.href = links.klikindomaret[os];
+    if (poinku) poinku.href = links.poinku[os];
+    if (isaku) isaku.href = links.isaku[os];
+
+    if (indopaket) {
+        const url = links.indopaket[os];
+        if (url === "#") {
+            indopaket.removeAttribute('href');
+            indopaket.style.pointerEvents = "none";
+            indopaket.style.opacity = "0.5";
+            indopaket.style.cursor = "default";
+            indopaket.title = "Belum tersedia untuk Huawei";
+        } else {
+            indopaket.href = url;
+        }
+    }
+});
+    </script>
+</footer>
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"\/*"},{"not":{"href_matches":["\/wp-*.php","\/wp-admin\/*","\/wp-content\/uploads\/*","\/wp-content\/*","\/wp-content\/plugins\/*","\/wp-content\/themes\/Eben-Theme-1\/*","\/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+    <style>
+    .cf7-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px 30px;
+        border-radius: 8px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        z-index: 9999;
+        display: none;
+    }
+
+    .cf7-popup-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 9998;
+        display: none;
+    }
+
+    .cf7-popup button {
+        margin-top: 15px;
+        padding: 8px 14px;
+        background: #0073aa;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    </style>
+
+    <div class="cf7-popup-overlay" id="cf7Overlay"></div>
+    <div class="cf7-popup" id="cf7Popup">
+        <p id="cf7PopupMessage"></p>
+        <button onclick="closeCf7Popup()">OK</button>
+    </div>
+
+    <script>
+    function showCf7Popup(message) {
+        document.getElementById('cf7PopupMessage').textContent = message;
+        document.getElementById('cf7Overlay').style.display = 'block';
+        document.getElementById('cf7Popup').style.display = 'block';
+    }
+
+    function closeCf7Popup() {
+        document.getElementById('cf7Popup').style.display = 'none';
+        document.getElementById('cf7Overlay').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+
+        fileInputs.forEach(function (input) {
+            input.addEventListener('change', function () {
+                const file = input.files[0];
+                if (!file) return;
+
+				const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+                const maxSizeMB = 1;
+
+                if (!validTypes.includes(file.type)) {
+                    showCf7Popup('Jenis file tidak valid. Harap unggah file JPG, PNG, atau PDF.');
+                    input.value = '';
+                    return;
+                }
+
+                if (file.size > maxSizeMB * 1024 * 1024) {
+                    showCf7Popup('Ukuran file terlalu besar. Maksimal 1MB.');
+                    input.value = '';
+                }
+            });
+        });
+    });
+    </script>
+    <style>
+        #brosur-paling-murah {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#brosur-paling-murah");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/paling-murah/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #hemat-minggu-ini {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#hemat-minggu-ini");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/hemat-minggu-ini/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #brosur-tebus-heboh {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#brosur-tebus-heboh");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/tebus-heboh/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #harga-khusus-member {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#harga-khusus-member");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/harga-khusus-member/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #promo-bank-ewallet {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#promo-bank-ewallet");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/promo-bank-ewallet/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #pulsanya-sekalian-kakak {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#pulsanya-sekalian-kakak");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/pulsanya-sekalian-kakak/", "_blank");
+                });
+            });
+        });
+    </script><style>
+        #brosur-promo-4-hari,
+        #brosur-promo-susu-perlengkapan-balita,
+        #brosur-promosi-berhadiah {
+            cursor: pointer;
+            display: inline-block;
+            transition: opacity 0.2s ease;
+        }
+
+        #brosur-promo-4-hari:hover,
+        #brosur-promo-susu-perlengkapan-balita:hover,
+        #brosur-promosi-berhadiah:hover {
+            opacity: 0.8;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const idToUrlMap = {
+                "brosur-promo-4-hari": "/p4h/",
+                "brosur-promo-susu-perlengkapan-balita": "/pspb/",
+                "brosur-promosi-berhadiah": "/promosi-berhadiah/"
+            };
+
+            Object.keys(idToUrlMap).forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener("click", function() {
+                        window.open(idToUrlMap[id], "_blank");
+                    });
+                }
+            });
+        });
+    </script><style>
+        #super-hemat {
+            cursor: pointer;
+            display: inline-block;
+        }
+    </style><script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var elements = document.querySelectorAll("#super-hemat");
+            elements.forEach(function(element) {
+                element.addEventListener("click", function() {
+                    window.open("/super-hemat/", "_blank");
+                });
+            });
+        });
+    </script>			<script>
+				const lazyloadRunObserver = () => {
+					const lazyloadBackgrounds = document.querySelectorAll( `.e-con.e-parent:not(.e-lazyloaded)` );
+					const lazyloadBackgroundObserver = new IntersectionObserver( ( entries ) => {
+						entries.forEach( ( entry ) => {
+							if ( entry.isIntersecting ) {
+								let lazyloadBackground = entry.target;
+								if( lazyloadBackground ) {
+									lazyloadBackground.classList.add( 'e-lazyloaded' );
+								}
+								lazyloadBackgroundObserver.unobserve( entry.target );
+							}
+						});
+					}, { rootMargin: '200px 0px 200px 0px' } );
+					lazyloadBackgrounds.forEach( ( lazyloadBackground ) => {
+						lazyloadBackgroundObserver.observe( lazyloadBackground );
+					} );
+				};
+				const events = [
+					'DOMContentLoaded',
+					'elementor/lazyload/observe',
+				];
+				events.forEach( ( event ) => {
+					document.addEventListener( event, lazyloadRunObserver );
+				} );
+			</script>
+			<script data-cfasync="false"> var dFlipLocation = "https://www.indomaret.co.id/wp-content/plugins/3d-flipbook-dflip-lite/assets/"; var dFlipWPGlobal = {"text":{"toggleSound":"Turn on\/off Sound","toggleThumbnails":"Toggle Thumbnails","toggleOutline":"Toggle Outline\/Bookmark","previousPage":"Previous Page","nextPage":"Next Page","toggleFullscreen":"Toggle Fullscreen","zoomIn":"Zoom In","zoomOut":"Zoom Out","toggleHelp":"Toggle Help","singlePageMode":"Single Page Mode","doublePageMode":"Double Page Mode","downloadPDFFile":"Download PDF File","gotoFirstPage":"Goto First Page","gotoLastPage":"Goto Last Page","share":"Share","mailSubject":"I wanted you to see this FlipBook","mailBody":"Check out this site {{url}}","loading":"DearFlip: Loading "},"viewerType":"flipbook","moreControls":"download,pageMode,startPage,endPage,sound","hideControls":"","scrollWheel":"false","backgroundColor":"#777","backgroundImage":"","height":"auto","paddingLeft":"20","paddingRight":"20","controlsPosition":"bottom","duration":800,"soundEnable":"true","enableDownload":"true","showSearchControl":"false","showPrintControl":"false","enableAnnotation":false,"enableAnalytics":"false","webgl":"true","hard":"none","maxTextureSize":"1600","rangeChunkSize":"524288","zoomRatio":1.5,"stiffness":3,"pageMode":"0","singlePageMode":"0","pageSize":"0","autoPlay":"false","autoPlayDuration":5000,"autoPlayStart":"false","linkTarget":"2","sharePrefix":"flipbook-"};</script></body>
+</html>
+
+
+<!-- Page supported by LiteSpeed Cache 6.5.4 on 2026-11-23 02:34:55 -->
