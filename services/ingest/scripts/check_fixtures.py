@@ -1,5 +1,7 @@
-#!/usr/bin/env python3
 """Cek fixture wajib: CI gagal kalau ada konektor tanpa fixture (ARCH §12.1).
+
+Tanpa shebang: file ini dijalankan sebagai `python3 scripts/check_fixtures.py`,
+jadi shebang + mode 100644 memicu ruff EXE001 di checkout bersih.
 
 Aturan: setiap file connectors/<nama>.py (selain base.py) wajib punya
 connectors/tests/fixtures/<source_id>/listing.html + minimal 1 detail-*.html

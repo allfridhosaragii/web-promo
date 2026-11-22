@@ -23,6 +23,7 @@
       "**/.venv/**",
       "**/__pycache__/**",
       "**/.pytest_cache/**",
+      "**/.turbo/**",
       "pnpm-lock.yaml"
     ]
   }
