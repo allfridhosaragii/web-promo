@@ -15,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from connectors.azko import AzkoConnector
 from connectors.bank_bca import BankBCAConnector
 from connectors.bank_bni import BankBNIConnector
 from connectors.base import BaseConnector, RawItem
@@ -59,6 +60,7 @@ _CONNECTORS: dict[str, tuple[type[BaseConnector], str, str]] = {
     "bca": (BankBCAConnector, "BCA", "bca"),
     "gopay": (GoPayConnector, "GoPay", "gopay"),
     "bni": (BankBNIConnector, "BNI", "bni"),
+    "azko": (AzkoConnector, "AZKO", "azko"),
 }
 
 _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
@@ -73,6 +75,7 @@ _PAYMENT_LABELS: dict[str, tuple[str, ...]] = {
     ),
     "gopay": ("GoPay", "GoPay Later", "GoPay Coins", "QRIS"),
     "bni": ("Kartu Kredit BNI", "Kartu Debit BNI", "wondr by BNI", "QRIS BNI"),
+    "azko": ("Member AZKO", "Rupiah", "Ruparupa"),
 }
 
 

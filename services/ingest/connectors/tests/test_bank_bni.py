@@ -97,6 +97,7 @@ def _mock_bni_transport() -> httpx.MockTransport:
 async def test_fetch_via_mock_transport() -> None:
     c = BankBNIConnector(transport=_mock_bni_transport())
     c.rate_limit_per_second = 0
+    c.max_retries = 0
     items = await c.fetch(limit=20)
     assert len(items) == 2
     urls = [item.source_url for item in items]

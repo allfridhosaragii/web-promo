@@ -55,17 +55,17 @@ _DATE_RE = re.compile(
 _DATE_BARE_RE = re.compile(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", re.IGNORECASE)
 _PERCENT_RE = re.compile(r"(\d{1,3})\s*(?:%|persen)", re.IGNORECASE)
 _DISCOUNT_AMOUNT_RE = re.compile(
-    r"(?:diskon|potongan|hemat|cashback)(?:\s+hingga)?\s+(?:rp|idr)\s*([\d.,]+)\s*(rb|ribu)?",
+    r"(?:diskon|potongan|hemat|cashback)(?:\s+hingga)?\s+(?:rp|idr)\s*([\d.,]+)\s*(rb|ribu|jt|juta)?",
     re.IGNORECASE,
 )
-_AMOUNT_RE = re.compile(r"(?:rp|idr)\s*([\d.,]+)\s*(rb|ribu)?", re.IGNORECASE)
+_AMOUNT_RE = re.compile(r"(?:rp|idr)\s*([\d.,]+)\s*(rb|ribu|jt|juta)?", re.IGNORECASE)
 _MIN_PURCHASE_RE = re.compile(
     r"(?:min(?:imal)?\.?|minimum)\s*(?:belanja|pembelian|transaksi)?\s*"
-    r"(?:rp\s*)?([\d.,]+)\s*(rb|ribu)?",
+    r"(?:rp\s*)?([\d.,]+)\s*(rb|ribu|jt|juta)?",
     re.IGNORECASE,
 )
 _MAX_DISCOUNT_RE = re.compile(
-    r"(?:maks(?:imal)?\.?|max\.?)\s*(?:diskon|potongan)?\s*(?:rp\s*)?([\d.,]+)\s*(rb|ribu)?",
+    r"(?:maks(?:imal)?\.?|max\.?)\s*(?:diskon|potongan)?\s*(?:rp\s*)?([\d.,]+)\s*(rb|ribu|jt|juta)?",
     re.IGNORECASE,
 )
 _VOUCHER_RE = re.compile(
@@ -77,12 +77,18 @@ _CASHBACK_PERCENT_RE = re.compile(r"cashback\s+(\d{1,3})\s*(?:%|persen)", re.IGN
 
 
 def _parse_amount(raw: str, suffix: str | None) -> int | None:
-    """'15.000' -> 15000, '15' + 'rb' -> 15000. Kembalikan None bila gagal."""
+    """'15.000' -> 15000, '15' + 'rb' -> 15000, '1.5' + 'juta' -> 1500000."""
+    suf = suffix.lower() if suffix else ""
+    if suf in ("jt", "juta"):
+        try:
+            return round(float(raw.replace(",", ".")) * 1_000_000)
+        except ValueError:
+            return None
     try:
         value = int(raw.replace(".", "").replace(",", ""))
     except ValueError:
         return None
-    if suffix:
+    if suf in ("rb", "ribu"):
         value *= 1000
     return value
 

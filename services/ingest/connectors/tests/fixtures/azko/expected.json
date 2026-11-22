@@ -1,0 +1,29 @@
+{
+  "source_id": "azko",
+  "captured_at_wib": "2026-11-23T00:50:00+07:00",
+  "listing_links": [
+    "https://azko.id/promo/christmas-extra-deals",
+    "https://azko.id/promo/payday-surprise",
+    "https://azko.id/promo/early-christmas-sale",
+    "https://azko.id/promo/si-kecil-bebas-bereksplorasi-di-ruang-yang-rapi",
+    "https://azko.id/promo/smart-home-bikin-rutinitas-terasa-effrotless"
+  ],
+  "detail_1": {
+    "source_url": "https://azko.id/promo/christmas-extra-deals",
+    "title": "Christmas Extra Deals",
+    "promo_type": "persen",
+    "value_percent": 20.0,
+    "min_purchase": 20000000,
+    "voucher_code": null,
+    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+  },
+  "detail_2": {
+    "source_url": "https://azko.id/promo/payday-surprise",
+    "title": "Payday Surprise",
+    "promo_type": "potongan_nominal",
+    "value_amount": 1000000,
+    "min_purchase": 1500000,
+    "voucher_code": null,
+    "ends_at_wib": "2026-11-30T23:59:59+07:00"
+  }
+}
