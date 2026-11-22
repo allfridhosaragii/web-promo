@@ -12,7 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
@@ -82,7 +81,9 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - name: Build image api/web/ingest/migrate/postgres untuk linux/arm64
         run: |
-          for f in api web ingest migrate postgres; do
+          for f in api web ingest migrate; do
             echo "== build infra/$f.Dockerfile (linux/arm64) =="
             docker buildx build --platform linux/arm64 -f "infra/$f.Dockerfile" .
           done
+          echo "== build infra/postgres/Dockerfile (linux/arm64) =="
+          docker buildx build --platform linux/arm64 -f infra/postgres/Dockerfile infra/postgres
