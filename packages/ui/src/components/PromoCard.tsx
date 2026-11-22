@@ -13,7 +13,7 @@ export function PromoCard({ promo }: { promo: PromoSummary }) {
           ? `Rp${promo.value_amount.toLocaleString("id-ID")}`
           : "PROMO";
   return (
-    <article className="border-2 border-[var(--bp-ink)] bg-white rounded-md p-4">
+    <article className="border-2 border-[var(--bp-ink)] bg-[var(--bp-surface)] text-[var(--bp-ink)] rounded-md p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="font-display text-4xl font-bold leading-none text-[var(--bp-sticker)]">
           {big}
@@ -36,7 +36,11 @@ export function PromoCard({ promo }: { promo: PromoSummary }) {
                 : "Aktif"}
         </Badge>
       </div>
-      <h3 className="mt-3 font-semibold text-lg leading-snug">{promo.title}</h3>
+      <h3 className="mt-3 font-semibold text-lg leading-snug">
+        <a href={`/promo/${promo.id}`} className="hover:underline">
+          {promo.title}
+        </a>
+      </h3>
       <p className="mt-1 text-sm text-[var(--bp-muted)]">{promo.summary}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <Badge>{promo.brand.name}</Badge>
@@ -61,14 +65,19 @@ export function PromoCard({ promo }: { promo: PromoSummary }) {
           serupa yang masih berlaku di halaman depan.
         </p>
       ) : null}
-      <a
-        href={promo.source_url}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-3 inline-block text-sm font-semibold underline"
-      >
-        Lihat di sumber
-      </a>
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm font-semibold">
+        <a href={`/promo/${promo.id}`} className="underline">
+          Detail promo
+        </a>
+        <a
+          href={promo.source_url}
+          target="_blank"
+          rel="noreferrer"
+          className="underline text-[var(--bp-muted)]"
+        >
+          Lihat di sumber
+        </a>
+      </div>
     </article>
   );
 }

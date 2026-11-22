@@ -12,4 +12,7 @@ export default defineConfig({
   outDir: "dist",
   clean: true,
   noExternal: [/^@burupromo\//],
+  banner: {
+    js: 'import { createRequire as __createRequire } from "node:module"; const require = __createRequire(import.meta.url);',
+  },
 });

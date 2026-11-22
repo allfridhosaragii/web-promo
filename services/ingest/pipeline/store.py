@@ -213,11 +213,15 @@ def index_meilisearch(promos: list[dict]) -> int:
     headers = {"Content-Type": "application/json"}
     if key:
         headers["Authorization"] = f"Bearer {key}"
-    resp = httpx.post(
-        f"{host}/indexes/{index_name}/documents?primaryKey=id",
-        json=docs,
-        headers=headers,
-        timeout=15.0,
-    )
-    resp.raise_for_status()
-    return len(docs)
+    try:
+        resp = httpx.post(
+            f"{host}/indexes/{index_name}/documents?primaryKey=id",
+            json=docs,
+            headers=headers,
+            timeout=15.0,
+        )
+        resp.raise_for_status()
+        return len(docs)
+    except httpx.HTTPError as exc:
+        logger.warning("Meilisearch tidak terjangkau (%s), skip indexing", exc)
+        return 0
