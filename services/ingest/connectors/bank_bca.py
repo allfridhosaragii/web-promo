@@ -109,6 +109,13 @@ class BankBCAConnector(BaseConnector):
     sitemap_url = "https://promo.bca.co.id/sitemap.xml"
     robots_url = "https://promo.bca.co.id/robots.txt"
 
+    def _allowed_by_robots(self, url: str) -> bool:
+        # Python 3.12 RobotFileParser belum mendukung wildcard /*/search;
+        # pastikan /search selalu diblokir sesuai robots.txt promo.bca.co.id.
+        if "/search" in urlparse(url).path:
+            return False
+        return super()._allowed_by_robots(url)
+
     async def _get_text(self, client: httpx.AsyncClient, url: str) -> str:
         resp = await client.get(url)
         resp.raise_for_status()
