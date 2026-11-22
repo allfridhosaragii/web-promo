@@ -22,6 +22,7 @@ Aturan keras (perbaikan E):
 from __future__ import annotations
 
 import json
+import logging
 import os
 import random
 import time
@@ -31,6 +32,8 @@ from datetime import UTC, datetime
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
+logger = logging.getLogger(__name__)
+
 WIB = ZoneInfo("Asia/Jakarta")
 
 SHEET_ACTIVE = "Promo Aktif"
@@ -38,9 +41,19 @@ SHEET_ARCHIVE = "Arsip"
 SHEET_LOG = "Log Sinkron"
 
 HEADERS_ACTIVE = [
-    "id", "judul", "brand", "kategori", "nilai_diskon", "kode",
-    "metode_bayar", "wilayah", "mulai", "berakhir_WIB", "status",
-    "sumber_URL", "terakhir_dicek",
+    "id",
+    "judul",
+    "brand",
+    "kategori",
+    "nilai_diskon",
+    "kode",
+    "metode_bayar",
+    "wilayah",
+    "mulai",
+    "berakhir_WIB",
+    "status",
+    "sumber_URL",
+    "terakhir_dicek",
 ]
 HEADERS_ARCHIVE = [*HEADERS_ACTIVE, "alasan_arsip"]
 HEADERS_LOG = ["waktu_WIB", "promo_id", "aksi", "status", "detail"]
@@ -179,10 +192,9 @@ class SheetsSync:
         return len(self._active)
 
     def _maybe_flush(self) -> None:
-        if len(self._archive_pending) >= BATCH_MAX_ROWS:
-            self.flush()
-        elif time.time() - self._last_flush_at >= BATCH_WINDOW_SECONDS and (
-            self._dirty_active or self._archive_pending
+        if len(self._archive_pending) >= BATCH_MAX_ROWS or (
+            time.time() - self._last_flush_at >= BATCH_WINDOW_SECONDS
+            and (self._dirty_active or self._archive_pending)
         ):
             self.flush()
 
@@ -228,8 +240,8 @@ class SheetsSync:
         try:
             now_wib = datetime.now(UTC).astimezone(WIB).strftime("%Y-%m-%d %H:%M WIB")
             self.client.append_rows(SHEET_LOG, [[now_wib, promo_id, action, status, detail[:200]]])
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 — gagal log tidak boleh menggagalkan sync
+            logger.debug("gagal tulis Log Sinkron (%s %s): %s", action, promo_id, exc)
 
     def flush(self) -> None:
         """Tulis ulang 'Promo Aktif' penuh + append 'Arsip' yang tertunda."""
@@ -238,9 +250,7 @@ class SheetsSync:
         self._last_flush_at = time.time()
         try:
             if self._dirty_active:
-                rows = [HEADERS_ACTIVE] + [
-                    promo_to_row(promo) for promo in self._active.values()
-                ]
+                rows = [HEADERS_ACTIVE] + [promo_to_row(promo) for promo in self._active.values()]
                 self._call_with_retry(lambda: self.client.rewrite_sheet(SHEET_ACTIVE, rows))
                 self._id_cache.pop(SHEET_ACTIVE, None)
                 self._dirty_active = False
@@ -252,8 +262,8 @@ class SheetsSync:
             if self.revalidate_fn is not None:
                 try:
                     self.revalidate_fn()
-                except Exception:
-                    pass  # revalidate gagal tidak menggagalkan sync (ARCH §17.4)
+                except Exception as exc:  # noqa: BLE001 — revalidate gagal tidak menggagalkan sync (ARCH §17.4)
+                    logger.debug("revalidate gagal setelah flush Sheets: %s", exc)
         except SheetsRateLimited as exc:
             self.last_error = f"429 Sheets API: {exc}"
             failed = [{"promo_id": pid, "action": "upsert"} for pid in self._active]
@@ -353,9 +363,11 @@ class _GoogleSheetsClient:
 
     def get_ids(self, sheet: str) -> list[str]:
         try:
-            res = self._values().get(
-                spreadsheetId=self._spreadsheet_id, range=f"'{sheet}'!A2:A"
-            ).execute()
+            res = (
+                self._values()
+                .get(spreadsheetId=self._spreadsheet_id, range=f"'{sheet}'!A2:A")
+                .execute()
+            )
             return [row[0] for row in res.get("values", []) if row]
         except Exception as exc:
             if "429" in str(exc):
@@ -368,9 +380,12 @@ class _GoogleSheetsClient:
         kosong supaya tidak ada baris basi yang tertinggal. (Sheets API tidak
         punya satu call clear+write; ini satu batchUpdate, bukan hapus per baris.)"""
         try:
-            old = self._values().get(
-                spreadsheetId=self._spreadsheet_id, range=f"'{sheet}'!A:A"
-            ).execute().get("values", [])
+            old = (
+                self._values()
+                .get(spreadsheetId=self._spreadsheet_id, range=f"'{sheet}'!A:A")
+                .execute()
+                .get("values", [])
+            )
             n_cols = max((len(r) for r in rows), default=1)
             total = max(len(rows), len(old))
             padded = [list(r) + [""] * (n_cols - len(r)) for r in rows]

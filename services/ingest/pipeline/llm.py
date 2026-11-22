@@ -23,6 +23,7 @@ Revisi 2 + perbaikan B (ARCH §11.1, ADR 0004 — menggantikan budget guard, ADR
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -36,6 +37,18 @@ PT = ZoneInfo("America/Los_Angeles")
 
 # Nama antrean (Redis di produksi). Satu-satunya tempat nama ini didefinisikan.
 LLM_QUEUE_KEY = "llm_queue"
+
+
+def _is_429(exc: Exception) -> bool:
+    """True bila exception adalah rate limit 429 dari Gemini (google-genai
+    melempar APIError dengan atribut `.code`, atau pesan berisi '429')."""
+    code = getattr(exc, "code", None)
+    if code is not None:
+        try:
+            return int(code) == 429
+        except (TypeError, ValueError):
+            pass
+    return "429" in str(exc)
 
 
 class QuotaExhaustedError(RuntimeError):
@@ -178,7 +191,11 @@ class LLMExtractor:
     Model + limit dari LLMConfig (.env) — TIDAK dikunci ke satu model.
     Tanpa GEMINI_API_KEY atau tanpa LLM_MODEL -> tidak ada panggilan.
     Kuota habis -> hasil aturan + item masuk llm_queue.
-    Panggilan LLM nyata (google-generativeai, JSON Schema) di vertical slice BCA.
+    Panggilan LLM nyata memakai SDK baru `google-genai` (google-generativeai
+    sudah deprecated dan DIHAPUS dari dependensi): `from google import genai`,
+    `client.models.generate_content` dengan `response_mime_type="application/json"`
+    + `response_schema`. LLM hanya MENGISI field yang belum didapat aturan —
+    tidak pernah menimpa field aturan, tidak pernah mengarang.
     """
 
     config: LLMConfig = field(default_factory=LLMConfig.from_env)
@@ -198,8 +215,11 @@ class LLMExtractor:
         if key in self.cache:
             cached = self.cache[key]
             return ExtractionResult(
-                fields=cached.fields, source="cache", llm_used=cached.llm_used,
-                needs_review=cached.needs_review, note="cache content_hash",
+                fields=cached.fields,
+                source="cache",
+                llm_used=cached.llm_used,
+                needs_review=cached.needs_review,
+                note="cache content_hash",
             )
 
         rules = extract_rules(text)
@@ -211,7 +231,9 @@ class LLMExtractor:
         if not self.api_key or not self.config.model:
             missing = "GEMINI_API_KEY" if not self.api_key else "LLM_MODEL"
             return ExtractionResult(
-                fields=rules, source="rules", needs_review=True,
+                fields=rules,
+                source="rules",
+                needs_review=True,
                 note=f"{missing} belum diisi — tidak ada panggilan API. "
                 "Isi dari AI Studio proyek owner (ARCH §11.1). "
                 "Field yang kurang masuk antrean review manual.",
@@ -222,18 +244,94 @@ class LLMExtractor:
         except QuotaExhaustedError as exc:
             self.guard.enqueue({"content_hash": key, "text": text})
             return ExtractionResult(
-                fields=rules, source="rules", needs_review=True, queued=True,
+                fields=rules,
+                source="rules",
+                needs_review=True,
+                queued=True,
                 note=str(exc),
             )
         except RateLimitedError as exc:
             return ExtractionResult(
-                fields=rules, source="rules", needs_review=True,
+                fields=rules,
+                source="rules",
+                needs_review=True,
                 note=f"{exc} Item tidak diantrekan — retry oleh scheduler dengan backoff.",
             )
 
-        # Kuota tersedia + API key ada, tapi panggilan nyata belum diimplementasi
-        # (vertical slice BCA). Jangan record() — belum ada request terkirim.
-        raise NotImplementedError(
-            "LLMExtractor.extract (panggilan Gemini) diimplementasikan di vertical slice BCA. "
-            "Sampai saat itu, hanya hasil aturan yang dipakai."
+        # Kuota tersedia + API key + model ada -> panggil Gemini (google-genai).
+        try:
+            llm_fields = self._call_gemini(text)
+        except RateLimitedError:
+            return ExtractionResult(
+                fields=rules,
+                source="rules",
+                needs_review=True,
+                note="Gemini 429 — retry oleh scheduler dengan backoff. "
+                "Item tidak diantrekan; quota guard sudah mencatat request ini.",
+            )
+        except Exception as exc:  # noqa: BLE001 — kegagalan LLM tidak boleh mematikan pipeline
+            return ExtractionResult(
+                fields=rules,
+                source="rules",
+                needs_review=True,
+                note=f"Panggilan Gemini gagal ({exc}) — dipakai hasil aturan saja, "
+                "masuk antrean review manual.",
+            )
+        self.guard.record()
+        merged = {**llm_fields, **rules}  # aturan menang; LLM hanya mengisi yang kosong
+        result = ExtractionResult(fields=merged, source="rules+llm", llm_used=True)
+        self.cache[key] = result
+        return result
+
+    def _call_gemini(self, text: str) -> dict:
+        """Satu request Gemini via SDK `google-genai`. Import lazy supaya modul
+        ini tetap bisa diimpor tanpa SDK (test aturan tidak butuh API key).
+
+        Mengembalikan dict field hasil parse JSON. Raise RateLimitedError bila
+        respons 429. Test memakai stub client via monkeypatch sys.modules
+        (lihat pipeline/tests/test_llm_genai.py) — tanpa request live.
+        """
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=self.api_key)
+        schema = {
+            "type": "OBJECT",
+            "properties": {
+                "value_percent": {"type": "NUMBER"},
+                "value_amount": {"type": "NUMBER"},
+                "max_discount": {"type": "NUMBER"},
+                "min_purchase": {"type": "NUMBER"},
+                "voucher_code": {"type": "STRING"},
+                "promo_type": {"type": "STRING"},
+                "ends_at": {"type": "STRING"},
+                "recurring_rule": {"type": "STRING"},
+            },
+        }
+        prompt = (
+            "Ekstrak info promo dari teks berikut dan kembalikan JSON sesuai skema. "
+            "Jangan mengarang field yang tidak ada di teks (isi null). "
+            "ends_at dalam format ISO 8601 dengan zona +07:00 bila ada tanggal berakhir.\n\n"
+            f"{text}"
         )
+        try:
+            response = client.models.generate_content(
+                model=self.config.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=schema,
+                    temperature=0,
+                ),
+            )
+        except Exception as exc:
+            if _is_429(exc):
+                self.guard.note_429()
+                raise RateLimitedError(
+                    "Gemini mengembalikan 429 (RPM/TPM/RPD). "
+                    "Retry dengan backoff (2/4/8 dtk, maks 3x); bila RPD habis, "
+                    "job berhenti dan sisa masuk llm_queue setelah reset PT."
+                ) from exc
+            raise
+        parsed = json.loads(response.text or "{}")
+        return parsed if isinstance(parsed, dict) else {}

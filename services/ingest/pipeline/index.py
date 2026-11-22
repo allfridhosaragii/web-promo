@@ -22,7 +22,7 @@ def to_unix_ts(value: datetime | str | None) -> int | None:
         return None
     if isinstance(value, str):
         try:
-            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            value = datetime.fromisoformat(value)  # py3.11+ sudah memahami akhiran "Z"
         except ValueError:
             return None
     if value.tzinfo is None:
@@ -37,9 +37,7 @@ def should_index(promo: dict) -> bool:
         return False
     if promo.get("lifecycle") not in INDEXABLE_LIFECYCLES:
         return False
-    if promo.get("moderation") == "ditolak":
-        return False
-    return True
+    return promo.get("moderation") != "ditolak"
 
 
 def to_meilisearch_doc(promo: dict) -> dict:

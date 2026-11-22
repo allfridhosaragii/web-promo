@@ -25,7 +25,9 @@ from pipeline.expire import (
 
 def test_segera_berakhir_under_24h() -> None:
     now = datetime(2026, 11, 22, 10, 0, tzinfo=UTC)
-    assert compute_lifecycle(None, datetime(2026, 11, 23, 9, 0, tzinfo=UTC), now) == "segera_berakhir"
+    assert (
+        compute_lifecycle(None, datetime(2026, 11, 23, 9, 0, tzinfo=UTC), now) == "segera_berakhir"
+    )
     assert compute_lifecycle(None, datetime(2026, 11, 25, 10, 0, tzinfo=UTC), now) == "aktif"
     assert compute_lifecycle(None, datetime(2026, 11, 22, 9, 0, tzinfo=UTC), now) == "kedaluwarsa"
     assert (
@@ -92,7 +94,10 @@ def test_recheck_due_open_ended_more_frequent() -> None:
     # Dengan ends_at: baru due setelah 24 jam (kecuali segera berakhir).
     checked_23h = now - timedelta(hours=23)
     assert recheck_due(checked_23h, datetime(2026, 12, 1, tzinfo=UTC), now) is False
-    assert recheck_due(now - timedelta(hours=2), datetime(2026, 11, 22, 20, 0, tzinfo=UTC), now) is True
+    assert (
+        recheck_due(now - timedelta(hours=2), datetime(2026, 11, 22, 20, 0, tzinfo=UTC), now)
+        is True
+    )
 
 
 def test_raw_items_ttl_30_days() -> None:

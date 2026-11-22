@@ -15,18 +15,29 @@ from zoneinfo import ZoneInfo
 WIB = ZoneInfo("Asia/Jakarta")
 
 _BULAN = {
-    "jan": 1, "januari": 1,
-    "feb": 2, "februari": 2,
-    "mar": 3, "maret": 3,
-    "apr": 4, "april": 4,
+    "jan": 1,
+    "januari": 1,
+    "feb": 2,
+    "februari": 2,
+    "mar": 3,
+    "maret": 3,
+    "apr": 4,
+    "april": 4,
     "mei": 5,
-    "jun": 6, "juni": 6,
-    "jul": 7, "juli": 7,
-    "agu": 8, "agustus": 8,
-    "sep": 9, "september": 9,
-    "okt": 10, "oktober": 10,
-    "nov": 11, "november": 11,
-    "des": 12, "desember": 12,
+    "jun": 6,
+    "juni": 6,
+    "jul": 7,
+    "juli": 7,
+    "agu": 8,
+    "agustus": 8,
+    "sep": 9,
+    "september": 9,
+    "okt": 10,
+    "oktober": 10,
+    "nov": 11,
+    "november": 11,
+    "des": 12,
+    "desember": 12,
 }
 
 _DATE_RE = re.compile(
@@ -86,7 +97,9 @@ def extract_rules(text: str, now: datetime | None = None) -> dict:
     # --- tanggal berakhir ---
     m = _DATE_RE.search(text) or _DATE_BARE_RE.search(text)
     if m:
-        ends = _parse_date(m.group(1), m.group(2), m.group(3) if m.lastindex and m.lastindex >= 3 else None, now)
+        ends = _parse_date(
+            m.group(1), m.group(2), m.group(3) if m.lastindex and m.lastindex >= 3 else None, now
+        )
         if ends is not None:
             out["ends_at"] = ends
 

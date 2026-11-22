@@ -9,7 +9,7 @@ dependencies = [
   "selectolax>=0.3.21",
   "redis>=5.2.0",
   "arq>=0.26.0",
-  "google-generativeai>=0.8.0",
+  "google-genai>=1.0.0",
   "playwright>=1.48.0",
   "python-dateutil>=2.9.0",  # RRULE valid untuk recurring_rule (ARCH §5.3)
   # Sinkron Spreadsheet (ARCH §17, revisi 2) — service account, tanpa billing.
@@ -28,6 +28,9 @@ target-version = "py312"
 testpaths = ["connectors/tests", "pipeline/tests", "sync/tests"]
 asyncio_mode = "auto"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+# BUKAN package: tidak ada yang di-build/di-ship dari proyek ini (hanya
+# skrip/worker yang dijalankan dari source). Tanpa ini, hatchling gagal
+# `uv sync` dengan "Unable to determine which files to ship".
+# [build-system] hatchling sengaja DIHAPUS — jangan ditambah lagi.
+[tool.uv]
+package = false

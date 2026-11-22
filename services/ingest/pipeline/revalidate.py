@@ -38,5 +38,5 @@ def trigger_revalidate(
             with httpx.Client(timeout=10.0) as http:
                 resp = http.post(f"{base}{REVALIDATE_PATH}", json=payload, headers=headers)
         return resp.status_code == 200
-    except Exception:
+    except Exception:  # noqa: BLE001 — revalidate gagal (jaringan/web mati) = False, bukan crash
         return False

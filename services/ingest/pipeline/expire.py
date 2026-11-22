@@ -47,9 +47,12 @@ def compute_lifecycle(
     now = now or datetime.now(UTC)
     if ends_at is not None and now >= ends_at:
         return "kedaluwarsa"
-    if ends_at is None and last_confirmed_at is not None:
-        if now - last_confirmed_at > UNCONFIRMED_MAX_AGE:
-            return "kedaluwarsa"
+    if (
+        ends_at is None
+        and last_confirmed_at is not None
+        and now - last_confirmed_at > UNCONFIRMED_MAX_AGE
+    ):
+        return "kedaluwarsa"
     if ends_at is not None and ends_at - now < SOON_THRESHOLD:
         return "segera_berakhir"
     if starts_at is not None and now < starts_at:
@@ -106,7 +109,7 @@ def next_recurring_ends(recurring_rule: str, current_ends_at: datetime) -> datet
     tidak ada kemunculan berikutnya. Jangan tebak pola — None = antrean manual."""
     try:
         rule = rrulestr(recurring_rule, dtstart=current_ends_at)
-    except Exception:
+    except Exception:  # noqa: BLE001 — rrulestr melempar banyak jenis error parse; invalid = antrean manual
         return None
     nxt = rule.after(current_ends_at, inc=False)
     if nxt is None:

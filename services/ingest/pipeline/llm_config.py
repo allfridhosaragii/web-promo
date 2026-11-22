@@ -35,8 +35,9 @@ class LLMConfig:
     tpm: int = 250_000  # fallback terburuk; isi dari AI Studio
 
     @classmethod
-    def from_env(cls, env: dict | None = None) -> "LLMConfig":
+    def from_env(cls, env: dict | None = None) -> LLMConfig:
         src = env if env is not None else os.environ
+
         def _int(key: str, default: int) -> int:
             try:
                 return int(str(src.get(key, "") or default))

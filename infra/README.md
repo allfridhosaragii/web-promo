@@ -23,9 +23,54 @@
   (jangan ubah via dashboard tanpa commit).
 - `postgres/Dockerfile` + `init/01-extensions.sql` + `init/02-umami-schema.sql` —
   postgis, vector, pgcrypto; schema `umami` terpisah untuk analitik.
+  **Postgres TIDAK memakai `postgis/postgis`** — image itu amd64 tunggal
+  (terverifikasi via registry: manifest tunggal `amd64/linux`), jadi tidak
+  bisa jalan di VM ARM Ampere A1. Sebagai gantinya `FROM postgres:16`
+  (multi-arch) + `apt install postgresql-16-postgis-3 postgresql-16-pgvector`
+  dari repo PGDG yang sudah ada di image resmi `postgres:16`.
 - `api.Dockerfile` / `web.Dockerfile` / `ingest.Dockerfile` / `migrate.Dockerfile` —
   image Fase 0. Semua `linux/arm64` (Oracle A1) — CI menjalankan
   `docker buildx build --platform linux/arm64`.
+
+## ARM64 — status image (terverifikasi 2026-11-22 via manifest registry)
+
+Dicek langsung ke Docker Hub / GHCR registry API (bukan klaim dari halaman
+marketing). Semua image di bawah ini punya `arm64/linux` di manifest-nya:
+
+| Image | Arsitektur di manifest |
+|---|---|
+| `postgres:16` | 386, amd64, arm, **arm64**, ppc64le, riscv64, s390x |
+| `valkey/valkey:8-alpine` | amd64, arm, **arm64**, ppc64le |
+| `getmeili/meilisearch:v1.12` | amd64, **arm64** |
+| `node:22-alpine` | amd64, arm, **arm64**, s390x |
+| `python:3.12-slim` | 386, amd64, arm, **arm64**, ppc64le, riscv64, s390x |
+| `caddy:2-alpine` | amd64, arm, **arm64**, ppc64le, riscv64, s390x |
+| `ghcr.io/umami-software/umami:postgresql-latest` | amd64, **arm64** |
+| `postgis/postgis:16-3.4` | **amd64 SAJA (manifest tunggal) — JANGAN dipakai** |
+
+**BELUM terverifikasi:** `docker buildx build --platform linux/arm64` untuk
+kelima Dockerfile dan `docker compose up` — Docker TIDAK ada di VM ini.
+Job `build-arm64` di CI adalah yang pertama kali membuktikan build ini;
+jangan klaim image produksi lolos sebelum job itu hijau.
+
+## Build produksi (bukan `pnpm dev` / `tsx` di server)
+
+- **API** (`api.Dockerfile`): `pnpm install --frozen-lockfile` (murni, tanpa
+  fallback `|| pnpm install`) → `pnpm --filter @burupromo/api build`
+  (tsup, bundel `src/index.ts` + paket workspace `@burupromo/*` jadi
+  `dist/index.js`) → `CMD ["node", "dist/index.js"]`. `tsc` saja TIDAK cukup:
+  paket workspace main-nya masih `.ts` dan Node tidak bisa menjalankannya
+  (pernah gagal `ERR_MODULE_NOT_FOUND './promo'`). Build ini sudah diuji
+  lokal: `dist/index.js` 128 KB, `/health` 200, `/v1/promos` 200.
+- **Web** (`web.Dockerfile`): `pnpm install --frozen-lockfile` (murni) →
+  `pnpm --filter @burupromo/web build` (`next build`) → `CMD ["pnpm", "start"]`
+  (`next start`). Dipakai `next start`, BUKAN output standalone.
+- **Migrate** (`migrate.Dockerfile`): `pnpm install --frozen-lockfile` (murni)
+  → `CMD ["pnpm", "migrate"]` (tsx, one-shot job — bukan server, jadi tsx
+  di sini disengaja).
+- **Ingest** (`ingest.Dockerfile`): `uv sync --frozen` MURNI (tanpa fallback
+  `|| uv sync`). `uv.lock` WAJIB ada dan cocok dengan `pyproject.toml`.
+- **Postgres** (`postgres/Dockerfile`): lihat catatan `postgis/postgis` di atas.
 - `backup/` — `backup.sh` (pg_dump → gzip → rclone ke Google Drive) +
   `crontab.example` (02:00 WIB) + README (uji restore wajib sekali di Fase 0).
 

@@ -640,6 +640,7 @@ Bukan anjuran — **syarat merge**.
   - `expected.json` — hasil parse + ekstraksi yang diharapkan untuk fixture itu (judul, nilai, tanggal WIB, kode, region)
 - Test: `services/ingest/connectors/tests/test_<source_id>.py` — `pytest` menjalankan `fetch` **dari fixture lokal** (mock HTTP), lalu `parse()` + pipeline normalize/dedup/score. **Tidak ada request live di test.**
 - Fixture diambil dari halaman publik yang sudah diverifikasi di `SOURCES.md` (disimpan sebagai file, bukan disalin utuh ke produksi — hanya untuk test, dengan atribusi URL sumber di header file).
+- **PERINGATAN — fixture BCA saat ini SINTETIS/placeholder:** `services/ingest/connectors/tests/fixtures/bca/` (listing + 2 detail + `expected.json`) DIKARANG untuk test parser Fase 0 dan BUKAN HTML asli dari `promo.bca.co.id`. WAJIB diganti di **vertical slice BCA** dengan HTML asli yang disimpan dari `promo.bca.co.id` (discovery via sitemap) + atribusi URL di header tiap file + `expected.json` dari data asli (lihat `fixtures/bca/README.md`). Jangan pernah menyajikan fixture sintetis sebagai data promo asli.
 - Konektor baru tanpa fixture + test hijau **tidak boleh merge**. CI gagal kalau ada konektor tanpa fixture.
 - Golden set LLM: ≥ 30 promo nyata yang dianotasi (judul, nilai, tanggal, syarat) di `services/ingest/pipeline/tests/golden/`. Ekstraksi LLM harus lolos ≥ 90% field wajib benar sebelum Fase 1 dinyatakan selesai.
 

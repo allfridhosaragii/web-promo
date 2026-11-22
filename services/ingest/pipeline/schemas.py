@@ -26,5 +26,7 @@ class PromoExtract(BaseModel):
     channel: str = Field(default="online", pattern=r"^(online|offline|keduanya)$")
     starts_at: datetime | None = None  # UTC
     ends_at: datetime | None = None  # UTC, dinormalisasi ke 23:59:59 WIB bila hanya tanggal
-    recurring_rule: str | None = None  # mis. FREQ=WEEKLY;BYDAY=FR,SA,SU (kode RRULE: MO TU WE TH FR SA SU)
+    recurring_rule: str | None = (
+        None  # mis. FREQ=WEEKLY;BYDAY=FR,SA,SU (kode RRULE: MO TU WE TH FR SA SU)
+    )
     confidence: float = Field(default=0.5, ge=0, le=1)

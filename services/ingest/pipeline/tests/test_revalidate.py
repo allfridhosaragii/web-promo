@@ -38,9 +38,7 @@ def test_trigger_posts_secret_header_and_paths() -> None:
 
 def test_trigger_returns_false_on_401_and_without_config() -> None:
     seen: dict = {}
-    assert (
-        trigger_revalidate("http://web:3000", "salah", client=_client(401, seen)) is False
-    )
+    assert trigger_revalidate("http://web:3000", "salah", client=_client(401, seen)) is False
     assert trigger_revalidate("http://web:3000", "", client=_client(200, seen)) is False
     assert trigger_revalidate("", "rahasia", client=_client(200, seen)) is False
 
